@@ -14,7 +14,7 @@ class Animation {
 public:
   Animation(const aiAnimation *animation);
 
-  float get_animation_time(float time_in_seconds, bool reversed = false) const;
+  float get_animation_time(float time_in_seconds, float speed_factor = 1.0f) const;
 
   Channel *get_channel(const std::string &name);
 

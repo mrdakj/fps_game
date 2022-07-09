@@ -15,9 +15,9 @@ AnimatedMesh::AnimatedMesh(const std::string &file_name)
     : m_skinned_mesh(file_name) {}
 
 std::pair<bool, glm::mat4>
-AnimatedMesh::update(const std::string &animation_name, float time_in_seconds, bool reversed) {
+AnimatedMesh::update(const std::string &animation_name, float time_in_seconds, float speed_factor) {
   auto [animation_finished, global_transformation] =
-      m_skinned_mesh.get_bones_for_animation(animation_name, time_in_seconds, reversed);
+      m_skinned_mesh.get_bones_for_animation(animation_name, time_in_seconds, speed_factor);
   clear_bounding_volumes();
   return {animation_finished, std::move(global_transformation)};
 }

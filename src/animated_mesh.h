@@ -18,7 +18,7 @@ public:
   // return true if animation is finished and return global transformation
   std::pair<bool, glm::mat4> update(const std::string &animation_name,
                                     float time_in_seconds,
-                                    bool reversed = false);
+                                    float speed_factor = 1.0f);
 
   glm::mat4 get_final_global_transformation_for_animation(
       const std::string &animation_name);

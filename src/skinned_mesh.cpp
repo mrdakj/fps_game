@@ -204,7 +204,30 @@ void SkinnedMesh::init_transformations(
     const std::unique_ptr<TransformationNode> &node,
     const glm::mat4 &parent_transform) {
   assert(node && "node is not null");
-  glm::mat4 global_transform = parent_transform * node->transformation;
+  // glm::mat4 global_transform = parent_transform * node->transformation;
+
+  // if (!node->meshes.empty()) {
+  //   // add transformation matrix for node meshes
+  //   add_transformation(global_transform, node->meshes);
+  // }
+
+  // for (const auto &child : node->children) {
+  //   init_transformations(child, global_transform);
+  // }
+
+  glm::mat4 &node_transform = node->transformation;
+  glm::mat4 root_global_transform = node_transform;
+
+  glm::mat4 global_transform = parent_transform * node_transform;
+
+  // cache
+  node->global_transformation = global_transform;
+
+  auto bone_info = get_bone_info(node->name);
+
+  if (bone_info) {
+    bone_info->set_final_transformation(global_transform);
+  }
 
   if (!node->meshes.empty()) {
     // add transformation matrix for node meshes
@@ -251,12 +274,12 @@ glm::mat4 SkinnedMesh::get_final_global_transformation_for_animation(
 
 std::pair<bool, glm::mat4>
 SkinnedMesh::get_bones_for_animation(const std::string &animation_name,
-                                     float time, bool reversed) {
+                                     float time, float speed_factor) {
   auto animation_it = m_animations.find(animation_name);
   assert(animation_it != m_animations.end() && "animation name is valid");
   auto &animation = animation_it->second;
 
-  float animation_time = animation.get_animation_time(time, reversed);
+  float animation_time = animation.get_animation_time(time, speed_factor);
 
   // no need to clear bones, all bones will be reset during tree traversal
   m_node_transformations.clear();
@@ -265,9 +288,10 @@ SkinnedMesh::get_bones_for_animation(const std::string &animation_name,
       animation, animation_time, *m_transformation_tree.root_node,
       glm::mat4(1.0f));
 
-  return {reversed ? animation_time == 0.0f
-                   : animation_time >= animation.m_duration,
-          std::move(root_global_transform)};
+  bool animation_finished = time < 0 ? animation_time == 0.0f
+                                     : animation_time == animation.m_duration;
+
+  return {animation_finished, std::move(root_global_transform)};
 }
 
 glm::mat4 SkinnedMesh::calculate_bones_transformations(
@@ -314,6 +338,15 @@ glm::mat4 SkinnedMesh::calculate_bones_transformations(
   }
 
   return root_global_transform;
+}
+
+void SkinnedMesh::set_node_transformation(const std::string &bone_name,
+                                          const glm::mat4 &transformation) {
+  auto node_ptr_it = m_transformation_tree.nodes_index.find(bone_name);
+  assert(node_ptr_it != m_transformation_tree.nodes_index.end() &&
+         "node name valid");
+  node_ptr_it->second->transformation *= transformation;
+  init_transformations(m_transformation_tree.root_node);
 }
 
 const glm::mat4 &

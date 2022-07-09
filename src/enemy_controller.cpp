@@ -1,4 +1,5 @@
 #include "enemy_controller.h"
+#include "animation_controller.h"
 
 #include <cmath>
 #include <glm/ext/scalar_constants.hpp>
@@ -11,45 +12,103 @@
 #include <glm/trigonometric.hpp>
 #include <math.h>
 
-#define EPS 0.0001
+const float GUN_PLAYER_ANGLE_THRESHOLD = 10;
+const float ENEMY_ROTATION_ANGLE_THRESHOLD = 50;
+const std::string ROTATE_ANIMATION = "rotate";
+const float ROTATE_ANIMATION_SPEED_FACTOR = 2.5f;
+const std::string FALL_DEAD_ANIMATION = "fall_dead";
+const std::string SHOOT_ANIMATION = "shoot";
+const float SHOOT_ANIMATION_SPEED_FACTOR = 2.0f;
+const float SHOOTING_DURATION_SECONDS = 2;
 
 void EnemyController::update(float current_time) {
-  if (m_object.is_shot() && !m_last_animation_triggered) {
-    // stop the current ongoing animation
-    on_animation_stop();
-    on_animation_start("fall_dead", current_time);
-    m_last_animation_triggered = true;
-  } else if (!m_object.is_shot() && animation_can_start("rotate")) {
-    float angle = m_object.get_player_angle();
-    if (fabs(angle) >= 80 && fabs(angle) <= 100) {
-      on_animation_start("rotate", current_time);
-      m_reversed = angle > 0;
-      if (m_reversed) {
-        m_object.set_user_transformation(
-            m_object.user_transformation() *
-            glm::inverse(m_object.get_final_global_transformation_for_animation(
-                m_animation_name)));
-      }
-    }
+  if (m_last_update_time == -1) {
+    // set last update time for the first time
+    m_last_update_time = current_time;
+  }
+
+  if (!check_if_dead_and_animate()) {
+    // rotate hips or start rotation animation
+    rotate(current_time);
+    shoot();
   }
 
   animation_update(current_time);
+
+  m_last_update_time = current_time;
 }
 
-void EnemyController::on_animation_stop() {
-  AnimationController::on_animation_stop();
-  m_object.merge_user_and_global_transformations();
-}
+void EnemyController::rotate(float current_time) {
+  float degrees_to_rotate =
+      get_rotation_angle(current_time - m_last_update_time);
 
-void EnemyController::animation_update(float current_time) {
-  if (animation_ongoing()) {
-    auto [animation_finished, global_transformation] = m_object.update(
-        m_animation_name, current_time - m_animation_start_time, m_reversed);
-
-    m_object.set_global_transformation(std::move(global_transformation));
-
-    if (animation_finished) {
-      on_animation_stop();
-    }
+  if (m_rotation_angle + degrees_to_rotate > ENEMY_ROTATION_ANGLE_THRESHOLD) {
+    degrees_to_rotate = ENEMY_ROTATION_ANGLE_THRESHOLD - m_rotation_angle;
+    start_rotate_left();
+  } else if (m_rotation_angle + degrees_to_rotate <
+             -ENEMY_ROTATION_ANGLE_THRESHOLD) {
+    degrees_to_rotate = -ENEMY_ROTATION_ANGLE_THRESHOLD - m_rotation_angle;
+    start_rotate_right();
   }
+
+  m_rotation_angle += degrees_to_rotate;
+  m_enemy.rotate(degrees_to_rotate);
+}
+
+void EnemyController::shoot() {
+  // should shooting start
+  float gun_player_angle = m_enemy.get_gun_player_angle();
+  if (fabs(gun_player_angle) < GUN_PLAYER_ANGLE_THRESHOLD) {
+    if (!m_is_shooting) {
+      m_is_shooting = on_animation_start(
+          SHOOT_ANIMATION,
+          AnimationData{0, SHOOT_ANIMATION_SPEED_FACTOR, false});
+    }
+  } else if (m_is_shooting) {
+    // should shooting end
+    m_is_shooting = !on_animation_start(
+        SHOOT_ANIMATION,
+        AnimationData{
+            -1, SHOOT_ANIMATION_SPEED_FACTOR, false, {ROTATE_ANIMATION}});
+  }
+}
+
+float EnemyController::get_rotation_angle(float delta_time) const {
+  float gun_player_angle = m_enemy.get_gun_player_angle();
+  return gun_player_angle > GUN_PLAYER_ANGLE_THRESHOLD
+             ? m_rotation_speed * delta_time
+         : gun_player_angle < -GUN_PLAYER_ANGLE_THRESHOLD
+             ? -m_rotation_speed * delta_time
+             : 0;
+}
+
+void EnemyController::start_rotate_left() {
+  bool start = on_animation_start(
+      ROTATE_ANIMATION,
+      AnimationData{
+          -1, ROTATE_ANIMATION_SPEED_FACTOR, true, {SHOOT_ANIMATION}});
+  if (start) {
+    m_enemy.set_user_transformation(
+        m_enemy.user_transformation() *
+        glm::inverse(m_enemy.get_final_global_transformation_for_animation(
+            ROTATE_ANIMATION)));
+  }
+}
+
+void EnemyController::start_rotate_right() {
+  on_animation_start(
+      ROTATE_ANIMATION,
+      AnimationData{0, ROTATE_ANIMATION_SPEED_FACTOR, true, {SHOOT_ANIMATION}});
+}
+
+bool EnemyController::check_if_dead_and_animate() {
+  bool is_shot = m_enemy.is_shot();
+
+  if (is_shot) {
+    on_animation_start(FALL_DEAD_ANIMATION, AnimationData{0},
+                       true /* stop all active */);
+    disable_animation_start();
+  }
+
+  return is_shot;
 }

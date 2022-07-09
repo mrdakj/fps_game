@@ -22,8 +22,11 @@ public:
   void set_shot();
   bool is_shot() const;
 
+  void rotate(float degrees);
+
   glm::vec3 get_gun_direction() const;
-  float get_player_angle() const;
+  float get_eye_player_angle() const;
+  float get_gun_player_angle() const;
 
   void render(Shader &shader, Shader &bounding_box_shader, const Camera &camera,
               const Light &light) override;

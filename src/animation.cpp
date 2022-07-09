@@ -16,10 +16,14 @@ Animation::Animation(const aiAnimation *animation)
 }
 
 float Animation::get_animation_time(float time_in_seconds,
-                                    bool reversed) const {
-  float time_in_ticks = time_in_seconds * m_ticks_per_second;
+                                    float speed_factor) const {
+  //  0   1   2
+  // -3  -2  -1
+  float time_in_ticks =
+      (time_in_seconds >= 0 ? time_in_seconds : -time_in_seconds - 1) *
+      m_ticks_per_second * speed_factor;
 
-  if (reversed) {
+  if (time_in_seconds < 0) {
     time_in_ticks = m_duration - time_in_ticks;
     return std::max(time_in_ticks, 0.0f);
   }

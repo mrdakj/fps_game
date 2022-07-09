@@ -143,7 +143,7 @@ public:
   // return true if animation is finished and return global transformation
   std::pair<bool, glm::mat4>
   get_bones_for_animation(const std::string &animation_name, float time,
-                          bool reversed = false);
+                          float speed_factor = 1.0f);
 
   // return global transformation
   glm::mat4 get_bones_for_position(const std::string &position_name);
@@ -153,6 +153,9 @@ public:
 
   const glm::mat4 &
   node_global_transformation(const std::string &node_name) const;
+
+  void set_node_transformation(const std::string &bone_name,
+                               const glm::mat4 &transformation);
 
 private:
   void init_from_scene(const aiScene *scene, const std::string &filename);

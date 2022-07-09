@@ -7,20 +7,17 @@
 #include "object_controller.h"
 #include "player.h"
 
-class PlayerController : ObjectController<Player>,
-                         InputController,
-                         AnimationController {
+class PlayerController : ObjectController,
+                         AnimationController,
+                         InputController {
 public:
   PlayerController(Player &player, const CollistionDetector &collision_detector,
                    GLFWwindow *window)
-      : ObjectController<Player>(player, collision_detector),
-        InputController(window), AnimationController() {}
+      : m_player(player), ObjectController(player, collision_detector),
+        AnimationController(player), InputController(window) {}
 
   // object controller methods
   void update(float current_time) override;
-
-  // animation controller methods
-  void animation_update(float current_time) override;
 
   // input controller methods
   void process_inputs(float current_time) override;
@@ -32,6 +29,8 @@ private:
   void process_keyboard_for_animation(float current_time);
 
   void process_mouse_for_rotation() const;
+
+  Player &m_player;
 };
 
 #endif /* _PLAYER_CONTROLLER_H_ */
