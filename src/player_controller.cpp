@@ -227,9 +227,8 @@ void PlayerController::process_mouse_for_rotation() const {
 
 void PlayerController::process_keyboard_for_animation(float current_time) {
   if (is_key_pressed(GLFW_KEY_P)) {
-    on_animation_start("CINEMA_4D_Main", AnimationData{0});
+    on_animation_start(Animations::Recharge);
   } else if (is_mouse_button_pressed(MouseButton::Left)) {
-    on_animation_start("shoot", AnimationData{0});
+    on_animation_start(Animations::Shoot);
   }
 }
-

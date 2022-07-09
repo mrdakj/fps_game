@@ -10,7 +10,17 @@ class EnemyController : ObjectController, AnimationController {
 public:
   EnemyController(Enemy &enemy, const CollistionDetector &collision_detector)
       : m_enemy(enemy), ObjectController(enemy, collision_detector),
-        AnimationController(enemy) {}
+        AnimationController(
+            enemy,
+            // animations
+            {{Animations::ShootStart, "shoot", 0, 2.0f, false},
+             {Animations::ShootEnd, "shoot", -1, 2.0f, false},
+             {Animations::RotateLeft, "rotate", -1, 2.5f, true},
+             {Animations::RotateRight, "rotate", 0, 2.5f, true},
+             {Animations::FallDead, "fall_dead", 0, 1.0f, false}},
+            // independent animations
+            {{Animations::ShootEnd, Animations::RotateLeft},
+             {Animations::ShootEnd, Animations::RotateRight}}) {}
 
   // object controller methods
   void update(float current_time) override;
@@ -31,6 +41,14 @@ private:
   float m_last_update_time = -1;
 
   bool m_is_shooting = false;
+
+  enum Animations {
+    ShootStart = 0,
+    ShootEnd,
+    RotateLeft,
+    RotateRight,
+    FallDead
+  };
 };
 
 #endif /* _ENEMY_CONTROLLER_H_ */

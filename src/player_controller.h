@@ -13,8 +13,11 @@ class PlayerController : ObjectController,
 public:
   PlayerController(Player &player, const CollistionDetector &collision_detector,
                    GLFWwindow *window)
-      : m_player(player), ObjectController(player, collision_detector),
-        AnimationController(player), InputController(window) {}
+      : m_player(player), InputController(window),
+        ObjectController(player, collision_detector),
+        AnimationController(player,
+                            {{Animations::Shoot, "shoot", 0},
+                             {Animations::Recharge, "CINEMA_4D_Main", 0}}) {}
 
   // object controller methods
   void update(float current_time) override;
@@ -31,6 +34,8 @@ private:
   void process_mouse_for_rotation() const;
 
   Player &m_player;
+
+  enum Animations { Shoot = 0, Recharge };
 };
 
 #endif /* _PLAYER_CONTROLLER_H_ */
