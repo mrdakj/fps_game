@@ -37,7 +37,7 @@ private:
   int m_width;
   int m_height;
 
-  float m_speed = 0.1f;
+  float m_speed = 0.05f;
   float m_sensitivity = 100.0f;
 };
 

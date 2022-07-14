@@ -39,7 +39,11 @@ public:
     return m_user_transformation * m_global_transformation;
   }
 
-  BoundingVolumeHierarchy<BoundingBox> get_bounding_volumes() const override;
+  std::unique_ptr<BVHNode<BoundingBox>> get_bvh() const override;
+
+private:
+  void render_boxes(const BVHNode<BoundingBox> &node, Shader &bounding_box_shader,
+                    const Camera &camera) const;
 
 protected:
   SkinnedMesh m_skinned_mesh;

@@ -20,6 +20,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "collision_object.h"
+
 #include "aabb.h"
 #include "animation.h"
 #include "bounding_box.h"
@@ -137,8 +139,10 @@ public:
                         unsigned int entry_index,
                         unsigned int primitive_index) const;
 
-  // get transformed bounding boxes for bones and mesh entries
-  std::vector<BoundingBox> get_transformed_bounding_boxes() const;
+  // packed means all boxes are in one aabb
+  std::unique_ptr<BVHNode<BoundingBox>>
+  get_bvh(const glm::mat4 &user_transformation = glm::mat4(1.0f),
+          bool packed = false) const;
 
   // return true if animation is finished and return global transformation
   std::pair<bool, glm::mat4>
@@ -168,6 +172,7 @@ private:
   init_transformations(const std::unique_ptr<TransformationNode> &node,
                        const glm::mat4 &parent_transform = glm::mat4(1.0f));
 
+  std::unique_ptr<BVHNode<BoundingBox>> get_bvh(TransformationNode &node, const glm::mat4& user_transformation) const;
   // fill m_bones_bounding_boxes with bones aabb
   void set_bones_bounding_boxes();
   void update_bones_aabb(const std::vector<MeshVertex> &vertices);

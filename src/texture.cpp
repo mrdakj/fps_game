@@ -2,18 +2,20 @@
 #include <stb/stb_image.h>
 #include <stdexcept>
 #include <string>
+#include "utility.h"
 
 Texture::~Texture() {
   if (m_type != TextureType::INVALID) {
-      del();
+    del();
   }
 }
 
 Texture::Texture(const char *image, TextureType type, GLuint slot)
     : m_type(type), m_slot(slot) {
+
   // loat image using stb library
   int img_width, img_height, chanel_count;
-  // stbi_set_flip_vertically_on_load(true);
+  stbi_set_flip_vertically_on_load(true);
   unsigned char *bytes =
       stbi_load(image, &img_width, &img_height, &chanel_count, 0);
 

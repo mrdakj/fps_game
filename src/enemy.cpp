@@ -23,9 +23,9 @@ const std::string GUN = "gun";
 
 Enemy::Enemy(const Player &player)
     : AnimatedMesh("../res/models/enemy/enemy.gltf"), m_player(player) {
-  auto scaling = glm::scale(glm::mat4(1.0f), glm::vec3(0.03, 0.03, 0.03));
+  auto scaling = glm::scale(glm::mat4(1.0f), glm::vec3(0.01, 0.01, 0.01));
   auto rotation = glm::mat4(1.0f);
-  auto translation = glm::translate(glm::mat4(1.0), glm::vec3(0, 0.5, -20));
+  auto translation = glm::translate(glm::mat4(1.0), glm::vec3(2, 0.1, -2));
   AnimatedMesh::set_user_transformation(translation * rotation * scaling);
 
   set_idle();

@@ -2,6 +2,7 @@
 #include "aabb.h"
 #include "bounding_box.h"
 #include "camera.h"
+#include "collision_object.h"
 #include <glm/ext/scalar_constants.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -15,16 +16,19 @@ AnimatedMesh::AnimatedMesh(const std::string &file_name)
     : m_skinned_mesh(file_name) {}
 
 std::pair<bool, glm::mat4>
-AnimatedMesh::update(const std::string &animation_name, float time_in_seconds, float speed_factor) {
+AnimatedMesh::update(const std::string &animation_name, float time_in_seconds,
+                     float speed_factor) {
   auto [animation_finished, global_transformation] =
-      m_skinned_mesh.get_bones_for_animation(animation_name, time_in_seconds, speed_factor);
+      m_skinned_mesh.get_bones_for_animation(animation_name, time_in_seconds,
+                                             speed_factor);
   clear_bounding_volumes();
   return {animation_finished, std::move(global_transformation)};
 }
 
-glm::mat4 AnimatedMesh::get_final_global_transformation_for_animation(const std::string &animation_name)
-{
-    return m_skinned_mesh.get_final_global_transformation_for_animation(animation_name);
+glm::mat4 AnimatedMesh::get_final_global_transformation_for_animation(
+    const std::string &animation_name) {
+  return m_skinned_mesh.get_final_global_transformation_for_animation(
+      animation_name);
 }
 
 void AnimatedMesh::render_to_texture(Shader &shader, const Camera &camera) {
@@ -50,11 +54,16 @@ void AnimatedMesh::render(Shader &shader, Shader &bounding_box_shader,
                      m_user_transformation * m_global_transformation);
   m_skinned_mesh.render(shader, camera, light);
 
-  // auto bvh = get_bounding_volumes();
-  // bvh.m_parent.render(bounding_box_shader, camera, glm::vec3(0.0, 0.0, 1.0));
-  // for (const auto &bounding_box : bvh.m_children) {
-  //   bounding_box.render(bounding_box_shader, camera, glm::vec3(1.0, 0.0, 0.0));
-  // }
+  render_boxes(*get_bvh(), bounding_box_shader, camera);
+}
+
+void AnimatedMesh::render_boxes(const BVHNode<BoundingBox> &node,
+                                Shader &bounding_box_shader,
+                                const Camera &camera) const {
+  node.volume.render(bounding_box_shader, camera, glm::vec3(1.0, 0.0, 0.0));
+  for (const auto &child : node.children) {
+    render_boxes(*child, bounding_box_shader, camera);
+  }
 }
 
 void AnimatedMesh::set_user_transformation(glm::mat4 transformation) {
@@ -72,18 +81,7 @@ void AnimatedMesh::merge_user_and_global_transformations() {
   m_global_transformation = glm::mat4(1.0f);
 }
 
-BoundingVolumeHierarchy<BoundingBox>
-AnimatedMesh::get_bounding_volumes() const {
-  auto mesh_bounding_boxes = m_skinned_mesh.get_transformed_bounding_boxes();
-  std::vector<BoundingBox> transformed_mesh_bounding_boxes;
-  transformed_mesh_bounding_boxes.reserve(mesh_bounding_boxes.size());
-  std::transform(mesh_bounding_boxes.cbegin(), mesh_bounding_boxes.cend(),
-                 std::back_inserter(transformed_mesh_bounding_boxes),
-                 [&](const auto &box) {
-                   return box.transform(m_user_transformation *
-                                        m_global_transformation);
-                 });
-
-  return {std::move(transformed_mesh_bounding_boxes),
-          false /* don't always check children */};
+std::unique_ptr<BVHNode<BoundingBox>> AnimatedMesh::get_bvh() const {
+  return m_skinned_mesh.get_bvh(m_user_transformation *
+                                m_global_transformation, true);
 }

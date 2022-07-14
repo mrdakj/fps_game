@@ -3,6 +3,7 @@
 
 #include "shader.h"
 #include <GL/glew.h>
+#include <glm/fwd.hpp>
 #include <string>
 
 enum class TextureType { DIFFUSE, SPECULAR, INVALID };

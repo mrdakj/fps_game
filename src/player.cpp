@@ -49,7 +49,7 @@ void Player::set_position(glm::vec3 position) {
 }
 
 void Player::set_user_scaling() {
-  m_scaling = glm::scale(glm::mat4(1.0f), glm::vec3(0.03, 0.03, 0.03));
+  m_scaling = glm::scale(glm::mat4(1.0f), glm::vec3(0.01, 0.01, 0.01));
   // m_scaling = glm::scale(glm::mat4(1.0f), glm::vec3(1, 1, 1));
   AnimatedMesh::set_user_transformation(m_translation*m_rotation*m_scaling);
 }
@@ -82,8 +82,8 @@ void Player::set_user_translation() {
 
   m_translation = glm::translate(
       glm::mat4(1.0),
-      m_camera.position() + 2.5f * m_camera.orientation() + 1.0f * downVector);
-  // m_translation = glm::translate(glm::mat4(1.0), glm::vec3(0, 3, -15));
+      m_camera.position() + 0.75f * m_camera.orientation() + 0.3f * downVector);
+  // m_translation = glm::translate(glm::mat4(1.0), glm::vec3(0, 1.4, -3));
 
   AnimatedMesh::set_user_transformation(m_translation*m_rotation*m_scaling);
 }

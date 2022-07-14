@@ -5,6 +5,7 @@
 #include <string>
 
 #include "aabb.h"
+#include "animated_mesh.h"
 #include "bounding_box.h"
 #include "camera.h"
 #include "collision_detector.h"
@@ -25,7 +26,7 @@ const int window_height = 1000;
 
 struct Scene {
   Scene(GLFWwindow *window)
-      : enemy(player), collision_detector{{&player, &enemy}, {&room}},
+      : enemy(player), collision_detector{{&player, &enemy}, &room},
         enemy_controller{enemy, collision_detector},
         player_controller{player, collision_detector, window}, input_controller{
                                                                    window} {}
@@ -66,7 +67,7 @@ struct Scene {
     enemy.render(skinned_mesh_shader, bounding_box_shader, camera, light);
     player.render(skinned_mesh_shader, bounding_box_shader, light);
 
-    room.render(basic_shader, camera, light);
+    room.render(skinned_mesh_shader, bounding_box_shader, camera, light);
     cursor.render();
 
     render_pixel_primitive(pixel);
@@ -80,6 +81,8 @@ struct Scene {
     picking_shader.activate();
     picking_shader.set_uniform<unsigned int>("gObjectIndex", 1);
     enemy.render_to_texture(picking_shader, camera);
+    picking_shader.set_uniform<unsigned int>("gObjectIndex", 2);
+    room.render_to_texture(picking_shader, camera);
 
     picking_texture.disable_writing();
   }
@@ -104,10 +107,8 @@ struct Scene {
 
   Cursor cursor;
 
-  Camera camera{window_width, window_height, glm::vec3(0.0f, 5.0f, -10.0f)};
-  Light light{glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 0.0f)};
-
-  Room room{50, 50, 10, glm::vec3(-25, 0, 0)};
+  Camera camera{window_width, window_height, glm::vec3(0.0f, 1.6f, 0.0f)};
+  Light light{glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 0.5f, 0.0f)};
 
   Player player{camera};
   Enemy enemy;
@@ -118,6 +119,8 @@ struct Scene {
 
   InputController input_controller;
   PickingTexture picking_texture{window_width, window_height};
+
+  Room room{"../res/models/level1/level1.gltf"};
 };
 
 int main(void) {

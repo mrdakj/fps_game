@@ -14,6 +14,8 @@ in vec3 crntPos;
 
 // Gets the Texture Unit from the main function
 uniform sampler2D diffuse0;
+uniform mat3 uv_transformation0;
+
 uniform sampler2D specular0;
 // Gets the color of the light from the main function
 uniform vec4 lightColor;
@@ -22,7 +24,7 @@ uniform vec3 lightPos;
 // Gets the position of the camera from the main function
 uniform vec3 camPos;
 
-vec4 pointLight()
+vec4 pointLight(vec2 uvTransformed)
 {
 	// used in two variables so I calculate it here to not have to do it twice
 	vec3 lightVec = lightPos - crntPos;
@@ -48,10 +50,10 @@ vec4 pointLight()
 	float specAmount = pow(max(dot(viewDirection, reflectionDirection), 0.0f), 16);
 	float specular = specAmount * specularLight;
 
-	return (texture(diffuse0, texCoord) * (diffuse * inten + ambient) + texture(specular0, texCoord).r * specular * inten) * lightColor;
+	return (texture(diffuse0, uvTransformed) * (diffuse * inten + ambient) + texture(specular0, uvTransformed).r * specular * inten) * lightColor;
 }
 
-vec4 direcLight()
+vec4 direcLight(vec2 uvTransformed)
 {
 	// ambient lighting
 	float ambient = 0.30f;
@@ -68,11 +70,10 @@ vec4 direcLight()
 	float specAmount = pow(max(dot(viewDirection, reflectionDirection), 0.0f), 16);
 	float specular = specAmount * specularLight;
 
-	//return (texture(diffuse0, texCoord) * (diffuse + ambient)+  specular) * lightColor;
-	return (texture(diffuse0, texCoord) * (diffuse + ambient) + texture(specular0, texCoord).r * specular) * lightColor;
+	return (texture(diffuse0, uvTransformed) * (diffuse + ambient) + texture(specular0, uvTransformed).r * specular) * lightColor;
 }
 
-vec4 spotLight()
+vec4 spotLight(vec2 uvTransformed)
 {
 	// controls how big the area that is lit up is
 	float outerCone = 0.90f;
@@ -97,12 +98,16 @@ vec4 spotLight()
 	float angle = dot(vec3(0.0f, -1.0f, 0.0f), -lightDirection);
 	float inten = clamp((angle - outerCone) / (innerCone - outerCone), 0.0f, 1.0f);
 
-	return (texture(diffuse0, texCoord) * (diffuse * inten + ambient) + texture(specular0, texCoord).r * specular * inten) * lightColor;
+	return (texture(diffuse0, uvTransformed) * (diffuse * inten + ambient) + texture(specular0, uvTransformed).r * specular * inten) * lightColor;
 }
 
 void main()
 {
-	FragColor = direcLight();
+    vec2 uvTransformed = (uv_transformation0 * vec3(texCoord.xy, 1)).xy;
+
+	FragColor = direcLight(uvTransformed);
+	//FragColor = spotLight(uvTransformed);
+	//FragColor = pointLight(uvTransformed);
+    //FragColor = texture(diffuse0, uvTransformed);
     //FragColor = vec4(color,1.0);
-     //FragColor = texture(diffuse0, texCoord);
 }

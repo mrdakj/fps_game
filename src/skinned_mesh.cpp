@@ -3,6 +3,7 @@
 #include "bounding_box.h"
 #include "camera.h"
 #include "channel.h"
+#include "collision_object.h"
 #include "light.h"
 #include "shader.h"
 #include "texture.h"
@@ -23,12 +24,20 @@
 #include <unordered_set>
 #include <vector>
 
+bool print = false;
+
 SkinnedMesh::SkinnedMesh(const std::string &filename) {
+  if (filename == "../res/models/level1/level1.gltf") {
+    print = true;
+  }
   Assimp::Importer importer;
   const aiScene *scene = importer.ReadFile(
-      filename.c_str(), aiProcess_Triangulate | aiProcess_GenSmoothNormals |
-                            aiProcess_FlipUVs |
-                            aiProcess_JoinIdenticalVertices);
+      filename.c_str(),
+      aiProcess_Triangulate | aiProcess_GenSmoothNormals |
+          // flip uvs does 1-y for texture coordinates,
+          // because in blender origin (0,0) is bottom left and texture origin
+          // is top left aiProcess_FlipUVs |
+          aiProcess_JoinIdenticalVertices);
 
   if (scene) {
     m_transformation_tree = scene->mRootNode;
@@ -62,6 +71,7 @@ void SkinnedMesh::init_mesh_entry(const aiMesh *mesh) {
   std::vector<GLuint> indices;
   indices.reserve(3 * mesh->mNumFaces);
 
+  // std::cout << mesh->mName.C_Str() << std::endl;
   const aiVector3D zero(0.0f, 0.0f, 0.0f);
 
   for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
@@ -178,7 +188,24 @@ void SkinnedMesh::init_materials(const aiScene *scene,
                                                        m_textures_map.size()))
                            .first;
         }
-        m_materials[i].add(&texture_it->second);
+
+        // get uv transformation if exists
+        aiUVTransform ai_uv_transform;
+        if (aiGetMaterialUVTransform(
+                material, AI_MATKEY_UVTRANSFORM(aiTextureType_DIFFUSE, j),
+                &ai_uv_transform) == AI_SUCCESS) {
+          UVTransform uv_transform{
+              utility::create_glm_mat3_translation(
+                  ai_uv_transform.mTranslation.x,
+                  ai_uv_transform.mTranslation.y),
+              utility::create_glm_mat3_rotation(ai_uv_transform.mRotation),
+              utility::create_glm_mat3_scaling(ai_uv_transform.mScaling.x,
+                                               ai_uv_transform.mScaling.y)};
+
+          m_materials[i].add(&texture_it->second, std::move(uv_transform));
+        } else {
+          m_materials[i].add(&texture_it->second);
+        }
       }
     }
   }
@@ -204,17 +231,6 @@ void SkinnedMesh::init_transformations(
     const std::unique_ptr<TransformationNode> &node,
     const glm::mat4 &parent_transform) {
   assert(node && "node is not null");
-  // glm::mat4 global_transform = parent_transform * node->transformation;
-
-  // if (!node->meshes.empty()) {
-  //   // add transformation matrix for node meshes
-  //   add_transformation(global_transform, node->meshes);
-  // }
-
-  // for (const auto &child : node->children) {
-  //   init_transformations(child, global_transform);
-  // }
-
   glm::mat4 &node_transform = node->transformation;
   glm::mat4 root_global_transform = node_transform;
 
@@ -475,22 +491,66 @@ void SkinnedMesh::set_bones_bounding_boxes() {
   }
 }
 
-std::vector<BoundingBox> SkinnedMesh::get_transformed_bounding_boxes() const {
+std::unique_ptr<BVHNode<BoundingBox>>
+SkinnedMesh::get_bvh(const glm::mat4 &user_transformation, bool packed) const {
+  if (!packed) {
+    // should not be used for skinned mesh with bones
+    return get_bvh(*m_transformation_tree.root_node, user_transformation);
+  }
+
+  // used for skinned mesh with bones
   std::vector<BoundingBox> transformed_bounding_boxes;
   transformed_bounding_boxes.reserve(m_bones_bounding_boxes.size() +
                                      m_mesh_bounding_boxes.size());
   for (const auto &bounding_box_pair : m_bones_bounding_boxes) {
     transformed_bounding_boxes.emplace_back(bounding_box_pair.second.transform(
+        user_transformation *
         m_bones[bounding_box_pair.first].final_transformation));
   }
 
   for (const auto &bounding_box_pair : m_mesh_bounding_boxes) {
     transformed_bounding_boxes.emplace_back(bounding_box_pair.second.transform(
+        user_transformation *
         m_node_transformations[m_entries[bounding_box_pair.first]
                                    .m_transformation_index]));
   }
 
-  return transformed_bounding_boxes;
+  return std::make_unique<BVHNode<BoundingBox>>(
+      BoundingBox::bounding_aabb(transformed_bounding_boxes));
+}
+
+std::unique_ptr<BVHNode<BoundingBox>>
+SkinnedMesh::get_bvh(TransformationNode &node,
+                     const glm::mat4 &transformation) const {
+  BVHNode<BoundingBox> current_node;
+  auto current_transformation = transformation * node.transformation;
+
+  std::vector<BoundingBox> boxes;
+  for (auto &child : node.children) {
+    auto child_bvh = get_bvh(*child, current_transformation);
+    if (child_bvh) {
+      boxes.push_back(child_bvh->volume);
+      current_node.children.emplace_back(std::move(child_bvh));
+    }
+  }
+
+  for (unsigned int mesh_index : node.meshes) {
+    auto mesh_box = m_mesh_bounding_boxes.find(mesh_index);
+    assert(mesh_box != m_mesh_bounding_boxes.end() &&
+           "mesh bounding box exists");
+    boxes.push_back(mesh_box->second.transform(current_transformation));
+    current_node.children.emplace_back(std::make_unique<BVHNode<BoundingBox>>(boxes.back()));
+  }
+
+  if (boxes.empty()) {
+    // node is useless for bounding volume hierarchy
+    return nullptr;
+  }
+
+  current_node.volume = (boxes.size() == 1) ? std::move(boxes[0])
+                                            : BoundingBox::bounding_aabb(boxes);
+
+  return std::make_unique<BVHNode<BoundingBox>>(std::move(current_node));
 }
 
 // MeshEntry
@@ -588,6 +648,8 @@ void SkinnedMesh::MeshEntry::unbind(bool unbind_textures) const {
 void SkinnedMesh::MeshEntry::bind_textures(Shader &shader) const {
   assert(m_material_index < m_mesh.m_materials.size());
   m_mesh.m_materials[m_material_index].set_slots(shader, "diffuse");
+  m_mesh.m_materials[m_material_index].set_uv_transformations(
+      shader, "uv_transformation");
   m_mesh.m_materials[m_material_index].bind();
 }
 

@@ -32,6 +32,11 @@ public:
       glUniform1i(uniform_location, value);
     } else if constexpr (std::is_same_v<std::decay_t<T>, unsigned int>) {
       glUniform1ui(uniform_location, value);
+    } else if constexpr (std::is_same_v<std::decay_t<T>, glm::mat3>) {
+      glUniformMatrix3fv(uniform_location, 1,
+                         // don't need to transpose the matrix because glm is
+                         // already column major
+                         GL_FALSE, glm::value_ptr(std::forward<T>(value)));
     } else if constexpr (std::is_same_v<std::decay_t<T>, glm::mat4>) {
       glUniformMatrix4fv(uniform_location, 1,
                          // don't need to transpose the matrix because glm is
