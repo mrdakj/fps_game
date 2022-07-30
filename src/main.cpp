@@ -13,11 +13,12 @@
 #include "enemy.h"
 #include "enemy_controller.h"
 #include "input_controller.h"
+#include "level_manager.h"
 #include "light.h"
+#include "map.h"
 #include "picking_texture.h"
 #include "player.h"
 #include "player_controller.h"
-#include "room.h"
 #include "shader.h"
 #include <GLFW/glfw3.h>
 
@@ -26,15 +27,19 @@ const int window_height = 1000;
 
 struct Scene {
   Scene(GLFWwindow *window)
-      : enemy(player), collision_detector{{&player, &enemy}, &room},
+      : enemy(player), collision_detector{},
         enemy_controller{enemy, collision_detector},
-        player_controller{player, collision_detector, window}, input_controller{
-                                                                   window} {}
+        player_controller{player, collision_detector, window},
+        input_controller{window},
+        level_manager(map, player, {&enemy}, collision_detector) {}
 
   void update(float current_time) {
+    level_manager.update_active_rooms();
+    level_manager.update_collision_detector();
     player_controller.update(current_time);
     enemy_controller.update(current_time);
-    camera.update_matrix(45.0f, 0.1f, 300.0f);
+    camera.update_matrix();
+    level_manager.culling();
   }
 
   void process_mouse_click() {
@@ -64,10 +69,13 @@ struct Scene {
     // clear the back buffer and assign the new color to it
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    enemy.render(skinned_mesh_shader, bounding_box_shader, camera, light);
-    player.render(skinned_mesh_shader, bounding_box_shader, light);
+    level_manager.render_enemies(skinned_mesh_shader, bounding_box_shader,
+                                 camera, light);
+    level_manager.render_player(skinned_mesh_shader, bounding_box_shader,
+                                light);
+    level_manager.render_map(skinned_mesh_shader, bounding_box_shader, camera,
+                             light);
 
-    room.render(skinned_mesh_shader, bounding_box_shader, camera, light);
     cursor.render();
 
     render_pixel_primitive(pixel);
@@ -78,12 +86,8 @@ struct Scene {
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    picking_shader.activate();
-    picking_shader.set_uniform<unsigned int>("gObjectIndex", 1);
-    enemy.render_to_texture(picking_shader, camera);
-    picking_shader.set_uniform<unsigned int>("gObjectIndex", 2);
-    room.render_to_texture(picking_shader, camera);
-
+    level_manager.render_to_texture_enemies(picking_shader, camera);
+    level_manager.render_to_texture_map(picking_shader, camera);
     picking_texture.disable_writing();
   }
 
@@ -120,7 +124,8 @@ struct Scene {
   InputController input_controller;
   PickingTexture picking_texture{window_width, window_height};
 
-  Room room{"../res/models/level1/level1.gltf"};
+  Map map{"../res/models/level1/level1.gltf"};
+  LevelManager level_manager;
 };
 
 int main(void) {

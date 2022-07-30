@@ -23,7 +23,7 @@ Player::Player(Camera &camera)
 }
 
 void Player::render(Shader &shader, Shader &bounding_box_shader,
-                    const Light &light) {
+                    const Light &light) const {
   AnimatedMesh::render(shader, bounding_box_shader, m_camera, light);
 }
 

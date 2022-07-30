@@ -29,7 +29,7 @@ public:
   float get_gun_player_angle() const;
 
   void render(Shader &shader, Shader &bounding_box_shader, const Camera &camera,
-              const Light &light) override;
+              const Light &light) const override;
 
 private:
   bool m_is_shot = false;

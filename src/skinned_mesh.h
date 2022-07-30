@@ -20,8 +20,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "collision_object.h"
-
 #include "aabb.h"
 #include "animation.h"
 #include "bounding_box.h"
@@ -33,6 +31,17 @@
 #include "utility.h"
 
 const unsigned int NUM_BONES_PER_VERTEX = 4;
+
+template <typename T> class CollisionObject;
+template <typename T> struct BVHNode {
+  BVHNode(T &&vol = {}) : volume(std::forward<T>(vol)) {}
+  BVHNode(const T &vol) : volume(vol) {}
+
+  std::string name;
+  T volume;
+  std::vector<std::unique_ptr<BVHNode<T>>> children;
+  std::vector<unsigned int> mesh_ids;
+};
 
 struct MeshVertex {
   MeshVertex(glm::vec3 position, glm::vec3 normal, glm::vec3 color,
@@ -132,8 +141,18 @@ public:
 
   // basic rendering
   void render(Shader &shader, const Camera &camera, const Light &light) const;
+
+  // render specific entries
+  void render(Shader &shader, const Camera &camera, const Light &light,
+              const std::vector<unsigned int> &entries) const;
+
   // rendering to texture for mouse picking
   void render_to_texture(Shader &shader, const Camera &camera) const;
+
+  // rendering to texture for mouse picking
+  void render_to_texture(Shader &shader, const Camera &camera,
+                         const std::vector<unsigned int> &entries) const;
+
   // rendering specific primitive (triangle) of given mesh entry for testing
   void render_primitive(Shader &shader, const Camera &camera,
                         unsigned int entry_index,
@@ -172,7 +191,8 @@ private:
   init_transformations(const std::unique_ptr<TransformationNode> &node,
                        const glm::mat4 &parent_transform = glm::mat4(1.0f));
 
-  std::unique_ptr<BVHNode<BoundingBox>> get_bvh(TransformationNode &node, const glm::mat4& user_transformation) const;
+  std::unique_ptr<BVHNode<BoundingBox>>
+  get_bvh(TransformationNode &node, const glm::mat4 &user_transformation) const;
   // fill m_bones_bounding_boxes with bones aabb
   void set_bones_bounding_boxes();
   void update_bones_aabb(const std::vector<MeshVertex> &vertices);

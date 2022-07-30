@@ -9,43 +9,80 @@
 
 const float eps = 0.001;
 
-std::optional<glm::vec3> CollistionDetector::collision_vector(
-    const CollisionObject<BoundingBox> &object) const {
-  auto result_vector = glm::vec3(0, 0, 0);
-
-  auto update_result = [&](const glm::vec3 other) {
-    for (int i = 0; i < 3; ++i) {
-      if (result_vector[i] > 0 && other[i] < 0 ||
-          result_vector[i] < 0 && other[i] > 0) {
-        // there is no such vector
-        return false;
+bool update_result(glm::vec3 &result_vector, const glm::vec3 &other) {
+  for (int i = 0; i < 3; ++i) {
+    if (result_vector[i] > 0 && other[i] < 0 ||
+        result_vector[i] < 0 && other[i] > 0) {
+      // there is no such vector
+      return false;
+    } else {
+      if (result_vector[i] == 0) {
+        result_vector[i] = other[i];
+      } else if (result_vector[i] > 0) {
+        result_vector[i] = std::max(result_vector[i], other[i]);
       } else {
-        if (result_vector[i] == 0) {
-          result_vector[i] = other[i];
-        } else if (result_vector[i] > 0) {
-          result_vector[i] = std::max(result_vector[i], other[i]);
-        } else {
-          result_vector[i] = std::min(result_vector[i], other[i]);
-        }
+        result_vector[i] = std::min(result_vector[i], other[i]);
       }
     }
-
-    return true;
-  };
-
-  auto maybe_current_vector = object.collision_vector(*m_static_object);
-  if (!maybe_current_vector || !update_result(*maybe_current_vector)) {
-    return std::nullopt;
   }
 
-  for (const auto &dynamic_object : m_dynamic_objects) {
-    if (&object == dynamic_object) {
-      // don't check intersection with itself
+  return true;
+}
+
+std::optional<glm::vec3> CollistionDetector::collision_vector(
+    const CollisionObject<BoundingBox> *dynamic_object) const {
+  auto result_vector = glm::vec3(0, 0, 0);
+
+  // collision with static objects
+  for (auto static_object_ptr : m_static_objects) {
+    auto current_vector =
+        collision_vector(dynamic_object->bvh().volume, static_object_ptr->bvh());
+
+    if (!current_vector || !update_result(result_vector, *current_vector)) {
+      // unsolvable collision
+      return std::nullopt;
+    }
+  }
+
+  // collision with other dynamic objects
+  bool ok = false;
+  for (auto dynamic_object_ptr : m_dynamic_objects) {
+    if (dynamic_object_ptr == dynamic_object) {
+      ok = true;
       continue;
     }
 
-    auto maybe_current_vector = object.collision_vector(*dynamic_object);
-    if (!maybe_current_vector || !update_result(*maybe_current_vector)) {
+    auto current_vector =
+        dynamic_object->bvh().volume.intersects(dynamic_object_ptr->bvh().volume);
+
+    if (!update_result(result_vector, current_vector)) {
+      // unsolvable collision
+      return std::nullopt;
+    }
+  }
+
+  assert(ok);
+
+  return result_vector;
+}
+
+std::optional<glm::vec3>
+CollistionDetector::collision_vector(const BoundingBox &box,
+                                     const BVHNode<BoundingBox> &node) const {
+  // order is important when doing intersects because of vector direction!
+  auto result_vector = box.intersects(node.volume);
+  if (result_vector == glm::vec3(0, 0, 0) || node.children.empty()) {
+    // there is no intersection - prune, don't go further
+    return result_vector;
+  }
+
+  // since there are children don't use this result vector in result
+  result_vector = glm::vec3(0, 0, 0);
+
+  for (const auto &child : node.children) {
+    auto child_vector = collision_vector(box, *child);
+    if (!child_vector || !update_result(result_vector, *child_vector)) {
+      // unsolvable collision
       return std::nullopt;
     }
   }

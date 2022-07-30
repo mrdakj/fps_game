@@ -15,7 +15,7 @@ public:
   virtual ~ObjectController() {}
 
   std::optional<glm::vec3> get_collision_vector() const {
-    return m_collision_detector.collision_vector(m_object);
+    return m_collision_detector.collision_vector(&m_object);
   }
 
 private:

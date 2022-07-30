@@ -24,8 +24,8 @@ public:
       const std::string &animation_name);
 
   virtual void render(Shader &shader, Shader &bounding_box_shader,
-                      const Camera &camera, const Light &light);
-  void render_to_texture(Shader &shader, const Camera &camera);
+                      const Camera &camera, const Light &light) const;
+  void render_to_texture(Shader &shader, const Camera &camera) const;
   void render_primitive(Shader &shader, const Camera &camera,
                         unsigned int entry, unsigned int primitive);
 
@@ -42,8 +42,8 @@ public:
   std::unique_ptr<BVHNode<BoundingBox>> get_bvh() const override;
 
 private:
-  void render_boxes(const BVHNode<BoundingBox> &node, Shader &bounding_box_shader,
-                    const Camera &camera) const;
+  void render_boxes(const BVHNode<BoundingBox> &node,
+                    Shader &bounding_box_shader, const Camera &camera) const;
 
 protected:
   SkinnedMesh m_skinned_mesh;

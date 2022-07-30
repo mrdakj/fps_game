@@ -93,7 +93,7 @@ float Enemy::get_gun_player_angle() const {
 }
 
 void Enemy::render(Shader &shader, Shader &bounding_box_shader,
-                   const Camera &camera, const Light &light) {
+                   const Camera &camera, const Light &light) const {
   AnimatedMesh::render(shader, bounding_box_shader, camera, light);
 
   // for testing to visualize a gun direction

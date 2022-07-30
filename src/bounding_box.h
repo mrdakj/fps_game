@@ -2,11 +2,12 @@
 #define _BOUNDING_BOX_H_
 
 #include "aabb.h"
-#include "camera.h"
 #include "shader.h"
 #include <GL/glew.h>
 #include <array>
 #include <glm/ext/vector_float3.hpp>
+
+class Camera;
 
 class BoundingBox {
 public:

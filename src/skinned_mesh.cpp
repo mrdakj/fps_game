@@ -375,6 +375,7 @@ SkinnedMesh::node_global_transformation(const std::string &node_name) const {
 
 void SkinnedMesh::render(Shader &shader, const Camera &camera,
                          const Light &light) const {
+
   // basic rendering
   shader.activate();
   // set camera position and matrix
@@ -386,8 +387,29 @@ void SkinnedMesh::render(Shader &shader, const Camera &camera,
   // set bones transformations
   set_bones_transformation_uniforms(shader);
 
+  // render all
   for (auto &mesh_entry : m_entries) {
     mesh_entry.render(shader);
+  }
+}
+
+void SkinnedMesh::render(Shader &shader, const Camera &camera,
+                         const Light &light,
+                         const std::vector<unsigned int> &entries) const {
+
+  // basic rendering
+  shader.activate();
+  // set camera position and matrix
+  shader.set_uniform("camPos", camera.position());
+  shader.set_uniform("camMatrix", camera.matrix());
+  // set light position and color
+  shader.set_uniform("lightPos", light.position());
+  shader.set_uniform("lightColor", light.color());
+  // set bones transformations
+  set_bones_transformation_uniforms(shader);
+
+  for (unsigned int entry_id : entries) {
+    m_entries[entry_id].render(shader);
   }
 }
 
@@ -407,6 +429,26 @@ void SkinnedMesh::render_to_texture(Shader &shader,
     // shader
     shader.set_uniform("gDrawIndex", i);
     m_entries[i].render(shader);
+  }
+}
+
+void SkinnedMesh::render_to_texture(
+    Shader &shader, const Camera &camera,
+    const std::vector<unsigned int> &entries) const {
+  // render to texture method used to render information about
+  // each mesh entry and its triangles
+  shader.activate();
+  // set camera matrix
+  shader.set_uniform("camMatrix", camera.matrix());
+  // set bones transformations
+  set_bones_transformation_uniforms(shader);
+
+  for (unsigned int entry_id : entries) {
+    // each triangle that will be rendered for this entry will have gDrawIndex
+    // set to mesh entry index, triangles indices will be set automatically in
+    // shader
+    shader.set_uniform("gDrawIndex", entry_id);
+    m_entries[entry_id].render(shader);
   }
 }
 
@@ -523,6 +565,7 @@ std::unique_ptr<BVHNode<BoundingBox>>
 SkinnedMesh::get_bvh(TransformationNode &node,
                      const glm::mat4 &transformation) const {
   BVHNode<BoundingBox> current_node;
+  current_node.name = node.name;
   auto current_transformation = transformation * node.transformation;
 
   std::vector<BoundingBox> boxes;
@@ -534,12 +577,15 @@ SkinnedMesh::get_bvh(TransformationNode &node,
     }
   }
 
+  std::vector<unsigned int> mesh_ids;
   for (unsigned int mesh_index : node.meshes) {
+    mesh_ids.push_back(mesh_index);
     auto mesh_box = m_mesh_bounding_boxes.find(mesh_index);
     assert(mesh_box != m_mesh_bounding_boxes.end() &&
            "mesh bounding box exists");
     boxes.push_back(mesh_box->second.transform(current_transformation));
-    current_node.children.emplace_back(std::make_unique<BVHNode<BoundingBox>>(boxes.back()));
+    current_node.children.emplace_back(
+        std::make_unique<BVHNode<BoundingBox>>(boxes.back()));
   }
 
   if (boxes.empty()) {
@@ -550,6 +596,7 @@ SkinnedMesh::get_bvh(TransformationNode &node,
   current_node.volume = (boxes.size() == 1) ? std::move(boxes[0])
                                             : BoundingBox::bounding_aabb(boxes);
 
+  current_node.mesh_ids = std::move(mesh_ids);
   return std::make_unique<BVHNode<BoundingBox>>(std::move(current_node));
 }
 

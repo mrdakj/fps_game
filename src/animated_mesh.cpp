@@ -31,7 +31,7 @@ glm::mat4 AnimatedMesh::get_final_global_transformation_for_animation(
       animation_name);
 }
 
-void AnimatedMesh::render_to_texture(Shader &shader, const Camera &camera) {
+void AnimatedMesh::render_to_texture(Shader &shader, const Camera &camera) const {
   shader.activate();
   shader.set_uniform("transformation",
                      m_user_transformation * m_global_transformation);
@@ -48,7 +48,7 @@ void AnimatedMesh::render_primitive(Shader &shader, const Camera &camera,
 }
 
 void AnimatedMesh::render(Shader &shader, Shader &bounding_box_shader,
-                          const Camera &camera, const Light &light) {
+                          const Camera &camera, const Light &light) const {
   shader.activate();
   shader.set_uniform("transformation",
                      m_user_transformation * m_global_transformation);

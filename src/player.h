@@ -17,7 +17,7 @@ class Player : public AnimatedMesh {
 public:
   Player(Camera &camera);
 
-  void render(Shader &shader, Shader &bounding_box_shader, const Light &light);
+  void render(Shader &shader, Shader &bounding_box_shader, const Light &light) const;
 
   void set_user_scaling();
   void set_user_rotation();

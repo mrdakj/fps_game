@@ -7,6 +7,7 @@
 #include <initializer_list>
 #include <iostream>
 #include <vector>
+#include "camera.h"
 
 #define INVALID INT_MAX
 #define FLOAT_MIN (-std::numeric_limits<float>::infinity())
