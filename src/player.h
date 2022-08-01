@@ -15,9 +15,12 @@
 
 class Player : public AnimatedMesh {
 public:
+  enum class Action { Shoot, Recharge, None };
+
   Player(Camera &camera);
 
-  void render(Shader &shader, Shader &bounding_box_shader, const Light &light) const;
+  void render(Shader &shader, Shader &bounding_box_shader,
+              const Light &light) const;
 
   void set_user_scaling();
   void set_user_rotation();
@@ -35,7 +38,6 @@ private:
   glm::mat4 m_scaling;
   glm::mat4 m_rotation;
   glm::mat4 m_translation;
-
 };
 
 #endif /* _PLAYER_H_ */

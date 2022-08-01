@@ -136,7 +136,7 @@ public:
     }
 
     // std::cout << m_map_meshes_to_render.size() << ","
-    //           << m_enemies_to_render.size() << std::endl;
+              // << m_enemies_to_render.size() << std::endl;
   }
 
   void render_player(Shader &shader, Shader &bounding_box_shader, const Light &light) const {

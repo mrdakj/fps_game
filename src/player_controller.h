@@ -7,17 +7,15 @@
 #include "object_controller.h"
 #include "player.h"
 
-class PlayerController : ObjectController,
-                         AnimationController,
-                         InputController {
+class PlayerController : ObjectController, InputController {
 public:
   PlayerController(Player &player, const CollistionDetector &collision_detector,
                    GLFWwindow *window)
       : m_player(player), InputController(window),
         ObjectController(player, collision_detector),
-        AnimationController(player,
-                            {{Animations::Shoot, "shoot", 0},
-                             {Animations::Recharge, "CINEMA_4D_Main", 0}}) {}
+        m_action_to_animation({{Player::Action::Shoot, {"shoot"}},
+                               {Player::Action::Recharge, {"CINEMA_4D_Main"}}}),
+        m_todo_action{Player::Action::None} {}
 
   // object controller methods
   void update(float current_time) override;
@@ -33,9 +31,12 @@ private:
 
   void process_mouse_for_rotation() const;
 
+  void animation_update(float current_time);
+
   Player &m_player;
 
-  enum Animations { Shoot = 0, Recharge };
+  std::unordered_map<Player::Action, AnimationController> m_action_to_animation;
+  Player::Action m_todo_action;
 };
 
 #endif /* _PLAYER_CONTROLLER_H_ */

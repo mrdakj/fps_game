@@ -227,8 +227,20 @@ void PlayerController::process_mouse_for_rotation() const {
 
 void PlayerController::process_keyboard_for_animation(float current_time) {
   if (is_key_pressed(GLFW_KEY_P)) {
-    on_animation_start(Animations::Recharge);
+    if (m_todo_action == Player::Action::None) {
+      m_todo_action = Player::Action::Recharge;
+    }
   } else if (is_mouse_button_pressed(MouseButton::Left)) {
-    on_animation_start(Animations::Shoot);
+    if (m_todo_action == Player::Action::None) {
+      m_todo_action = Player::Action::Shoot;
+    }
+  }
+}
+
+void PlayerController::animation_update(float current_time) {
+  if (m_todo_action != Player::Action::None) {
+    if (m_action_to_animation[m_todo_action].update(m_player, current_time)) {
+      m_todo_action = Player::Action::None;
+    }
   }
 }

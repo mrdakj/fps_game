@@ -11,7 +11,7 @@
 #include "collision_detector.h"
 #include "cursor.h"
 #include "enemy.h"
-#include "enemy_controller.h"
+#include "enemy_behavior_tree.h"
 #include "input_controller.h"
 #include "level_manager.h"
 #include "light.h"
@@ -27,9 +27,9 @@ const int window_height = 1000;
 
 struct Scene {
   Scene(GLFWwindow *window)
-      : enemy(player), collision_detector{},
-        enemy_controller{enemy, collision_detector},
-        player_controller{player, collision_detector, window},
+      : enemy(), collision_detector{},
+        enemy_bt(&enemy, player), player_controller{player, collision_detector,
+                                                    window},
         input_controller{window},
         level_manager(map, player, {&enemy}, collision_detector) {}
 
@@ -37,7 +37,8 @@ struct Scene {
     level_manager.update_active_rooms();
     level_manager.update_collision_detector();
     player_controller.update(current_time);
-    enemy_controller.update(current_time);
+    enemy_bt.update();
+    enemy.update(current_time);
     camera.update_matrix();
     level_manager.culling();
   }
@@ -116,7 +117,8 @@ struct Scene {
 
   Player player{camera};
   Enemy enemy;
-  EnemyController enemy_controller;
+
+  EnemyBT enemy_bt;
 
   CollistionDetector collision_detector;
   PlayerController player_controller;
