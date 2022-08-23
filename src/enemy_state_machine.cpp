@@ -32,8 +32,9 @@ StateMachine::StateMachine(Enemy &owner)
            {Action::Walk, {owner, "walk", false, 0.8f, false}},
            {Action::Transition, {owner, "transition", false}}}) {
 
-  // create Attacking, Patrolling and Dead states
+  // create Attacking, Chasing, Patrolling and Dead states
   m_states.emplace(StateName::Attacking, std::make_unique<Attacking>(*this));
+  m_states.emplace(StateName::Chasing, std::make_unique<Chasing>(*this));
   m_states.emplace(StateName::Patrolling, std::make_unique<Patrolling>(*this));
   m_states.emplace(StateName::Dead, std::make_unique<Dead>(*this));
 
@@ -181,6 +182,10 @@ bool StateMachine::in_state(StateName state_name) const {
   return m_current_state && m_current_state->name() == state_name;
 }
 
+bool StateMachine::transitioning_to_state(StateName state_name) const {
+  return m_transitioning_state && m_transitioning_state->name() == state_name;
+}
+
 // ------------------ EnemyState ------------------------
 EnemyState::EnemyState(StateMachine &owner, StateMachine::StateName state_name,
                        StateMachine::Action entering_action)
@@ -242,6 +247,42 @@ Alive::Alive(StateMachine &owner, StateMachine::StateName name,
 
 StateMachine::Position Alive::get_start_position() const {
   return m_start_position;
+}
+
+void Alive::do_rotate_action(
+    std::pair<const StateMachine::Action, StateMachine::ActionStatus>
+        &action_status,
+    float delta_time) {
+  assert((action_status.first == StateMachine::Action::RotateLeft ||
+          action_status.first == StateMachine::Action::RotateRight) &&
+         "performing rotate action");
+
+  if (action_status.second == StateMachine::ActionStatus::Created) {
+    // create "transition" animation from current position to the first
+    // frame of rotate animation
+    m_owner.create_transition_to_animation(action_status.first,
+                                           TRANSITION_TO_ROTATE_ANIMATION);
+    action_status.second = StateMachine::ActionStatus::Preparing;
+  }
+
+  if (action_status.second == StateMachine::ActionStatus::Preparing) {
+    // update transitioning animation
+    auto [finished, global_transformation] =
+        m_owner.get_animation(StateMachine::Action::Transition)
+            .update(delta_time);
+
+    if (finished) {
+      action_status.second = StateMachine::ActionStatus::Running;
+    }
+  } else if (action_status.second == StateMachine::ActionStatus::Running) {
+    // update rotate animation
+    auto [finished, global_transformation] =
+        m_owner.get_animation(action_status.first).update(delta_time);
+
+    if (finished) {
+      action_status.second = StateMachine::ActionStatus::Success;
+    }
+  }
 }
 
 // ---------------- Dead State ----------------------------------
@@ -358,34 +399,7 @@ void Attacking::execute(float delta_time) {
     switch (action_status.first) {
     case StateMachine::Action::RotateLeft:
     case StateMachine::Action::RotateRight:
-
-      if (action_status.second == StateMachine::ActionStatus::Created) {
-        // create "transition" animation from current position to the first
-        // frame of rotate animation
-        m_owner.create_transition_to_animation(action_status.first,
-                                               TRANSITION_TO_ROTATE_ANIMATION);
-        action_status.second = StateMachine::ActionStatus::Preparing;
-      }
-
-      if (action_status.second == StateMachine::ActionStatus::Preparing) {
-        // update transitioning animation
-        auto [finished, global_transformation] =
-            m_owner.get_animation(StateMachine::Action::Transition)
-                .update(delta_time);
-
-        if (finished) {
-          action_status.second = StateMachine::ActionStatus::Running;
-        }
-      } else if (action_status.second == StateMachine::ActionStatus::Running) {
-        // update rotate animation
-        auto [finished, global_transformation] =
-            m_owner.get_animation(action_status.first).update(delta_time);
-
-        if (finished) {
-          action_status.second = StateMachine::ActionStatus::Success;
-        }
-      }
-
+      Alive::do_rotate_action(action_status, delta_time);
       break;
 
     default:
@@ -401,6 +415,37 @@ void Attacking::register_todo_action(StateMachine::Action action) {
   assert((action == StateMachine::Action::RotateLeft ||
           action == StateMachine::Action::RotateRight) &&
          "valid Attacking action");
+  EnemyState::register_todo_action(action);
+}
+
+// ----------------- Chasing state -------------------------------
+Chasing::Chasing(StateMachine &owner)
+    : Alive(owner, StateMachine::StateName::Chasing,
+            StateMachine::Position::Attacking) {}
+
+bool Chasing::enter(float delta_time) { return true; }
+
+void Chasing::execute(float delta_time) {
+  for (auto &action_status : m_todo_actions) {
+    switch (action_status.first) {
+    case StateMachine::Action::RotateLeft:
+    case StateMachine::Action::RotateRight:
+      Alive::do_rotate_action(action_status, delta_time);
+      break;
+
+    default:
+      assert(false && "not supported action in chasing state");
+    }
+  }
+
+  // rotate spine bone manually in order to follow the moving target
+  m_owner.m_owner.rotate_spine(delta_time);
+}
+
+void Chasing::register_todo_action(StateMachine::Action action) {
+  assert((action == StateMachine::Action::RotateLeft ||
+          action == StateMachine::Action::RotateRight) &&
+         "valid Chasing action");
   EnemyState::register_todo_action(action);
 }
 

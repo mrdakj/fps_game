@@ -86,6 +86,11 @@ public:
   void set_shot();
   // check if enemy is shot
   bool is_shot() const;
+
+  void set_player_seen();
+  bool is_player_seen() const;
+  // how many seconds passed since the last time player was seen
+  unsigned int player_seen_seconds_passed() const;
   // ------------------------------------------------------------------
 
   // return true if player is visible
@@ -123,6 +128,11 @@ private:
 
   // get angle between gun and player
   float get_aiming_angle() const;
+
+  // return true if in attacking state or transitioning to attacking state
+  bool attacking() const;
+
+  void init_cache();
   // ----------------------------------------------------------------
 
 public:
@@ -148,8 +158,11 @@ public:
   const LevelManager &m_level_manager;
   // timer to update the state
   Timer m_timer;
+  // how many times update is called
+  unsigned int m_tick_count;
   // ---------------- cache -----------------------------
-  mutable std::pair<float, bool> m_spine_angle_cache = {0, false};
+  mutable std::pair<float, bool> m_spine_angle_cache;
+  mutable bool m_under_aim_during_chasing;
   // ----------------------------------------------------
 };
 

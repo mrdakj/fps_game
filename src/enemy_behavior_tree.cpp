@@ -52,15 +52,32 @@ std::unique_ptr<Node> EnemyBT::construct_bt() {
       std::make_unique<PlayerVisible>(*this),
       // attack
       std::make_unique<SetState>(*this, StateMachine::StateName::Attacking),
-      std::move(shoot_or_aim));
+      // force success so we don't go to chasing state if this node fails
+      std::make_unique<ForceSuccess>(std::move(shoot_or_aim)));
 
-  auto check_attacking_state = std::make_unique<ReactiveSequenceNode>(
+  // don't use reactive sequence because we will go to a chasing state if player
+  // became invisible
+  auto check_attacking_state = std::make_unique<SequenceNode>(
       std::make_unique<PlayerVisible>(*this), std::move(attacking_state));
   // ------- Attacking state end ----------------
 
+  // ------- Chasing state -----------------------
+  auto chasing_state = std::make_unique<SequenceNode>(
+      std::make_unique<Invert>(std::make_unique<UnderAim>(*this)),
+      // not rotating spine
+      std::make_unique<Invert>(std::make_unique<CanRotateSpine>(*this)),
+      // rotate body
+      std::make_unique<Rotate>(*this));
+
+  auto check_chasing_state = std::make_unique<SequenceNode>(
+      // player seen duration lasts for 10 seconds
+      std::make_unique<PlayerSeen>(*this, 10),
+      std::make_unique<SetState>(*this, StateMachine::StateName::Chasing),
+      // force success so we don't go to patrolling state if this node fails
+      std::make_unique<ForceSuccess>(std::move(chasing_state)));
+  // ------- Chasing state end -----------------------
+
   // --------- Idling/Patrolling state -------------
-  // auto patrolling_state =
-  //     std::make_unique<SetState>(*this, StateMachine::StateName::Patrolling);
   auto patrolling_state = std::make_unique<SequenceNode>(
       // go to patrlling state
       std::make_unique<SetState>(*this, StateMachine::StateName::Patrolling),
@@ -75,7 +92,8 @@ std::unique_ptr<Node> EnemyBT::construct_bt() {
 
   // --------- Alive state -----------------------
   auto alive_state = std::make_unique<FallbackNode>(
-      std::move(check_attacking_state), std::move(check_patrolling_state));
+      std::move(check_attacking_state), std::move(check_chasing_state),
+      std::move(check_patrolling_state));
   // --------- Alive state end -----------------------
 
   // always first check if enemy is dead and if he is, halt everything running
@@ -108,17 +126,37 @@ PlayerVisible::PlayerVisible(EnemyBT &bt) : EnemyBTNode(bt) {}
 NodeState PlayerVisible::tick() {
   auto player_visible_it =
       m_bt.m_blackboard.find(EnemyBT::BlackboardKeys::PlayerVisible);
-  if (player_visible_it != m_bt.m_blackboard.end()) {
-    return player_visible_it->second == 1 ? NodeState::Success
-                                          : NodeState::Failure;
-  }
 
   bool player_visible =
-      m_bt.m_enemy.is_player_close() && m_bt.m_enemy.is_player_visible();
+      player_visible_it != m_bt.m_blackboard.end()
+          ? player_visible_it->second == 1
+          : m_bt.m_enemy.is_player_close() && m_bt.m_enemy.is_player_visible();
+
   m_bt.m_blackboard[EnemyBT::BlackboardKeys::PlayerVisible] = player_visible;
+
+  if (player_visible) {
+    // set player's current position and current time as the last seen
+    m_bt.m_enemy.set_player_seen();
+  }
+
   return player_visible ? NodeState::Success : NodeState::Failure;
 }
 // --------- PlayerVisible End -------------
+
+// ----------- PlayerSeen -------------------
+PlayerSeen::PlayerSeen(EnemyBT &bt, unsigned int duration_seconds)
+    : EnemyBTNode(bt), m_duration_seconds(duration_seconds) {}
+
+NodeState PlayerSeen::tick() {
+  return
+      // player was seen at some point
+      m_bt.m_enemy.is_player_seen() &&
+              // player was seen recentrly
+              m_bt.m_enemy.player_seen_seconds_passed() < m_duration_seconds
+          ? NodeState::Success
+          : NodeState::Failure;
+}
+// ----------- PlayerSeen End -------------------
 
 // --------- Rotate -------------
 Rotate::Rotate(EnemyBT &bt) : EnemyBTNode(bt) {}

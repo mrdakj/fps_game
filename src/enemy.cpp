@@ -20,6 +20,9 @@ const glm::vec3 Enemy::FRONT_DIRECTION = glm::vec3(-1, 0, 0);
 const float Enemy::SCALING_FACTOR = 0.01;
 // ------------------------------------------------------
 
+// after how many ticks to update behavior tree
+#define AI_REFRESH_INTERVAL (5)
+
 #define SPINE_ANGLE_MIN (-60)
 #define SPINE_ANGLE_MAX (40)
 
@@ -41,7 +44,10 @@ unsigned int Enemy::get_id() {
 
 Enemy::Enemy(const LevelManager &level_manger)
     : AnimatedMesh(Enemy::get_animated_mesh_instance()), m_id(Enemy::get_id()),
-      m_level_manager(level_manger), m_state_machine(*this), m_bt(*this) {
+      m_level_manager(level_manger), m_state_machine(*this), m_bt(*this),
+      m_tick_count(0) {
+  init_cache();
+
   auto scaling = glm::scale(glm::mat4(1.0f), glm::vec3(Enemy::SCALING_FACTOR));
   auto rotation = glm::mat4(1.0f);
   auto translation = glm::mat4(1.0f);
@@ -52,7 +58,8 @@ Enemy::Enemy(const Enemy &other)
     : AnimatedMesh(other), m_id(other.m_id),
       m_level_manager(other.m_level_manager),
       // it is important to create a new state
-      m_state_machine(*this), m_bt(*this) {
+      m_state_machine(*this), m_bt(*this), m_tick_count(other.m_tick_count) {
+  init_cache();
   AnimatedMesh::set_user_transformation(other.user_transformation());
 }
 
@@ -256,8 +263,26 @@ void Enemy::render_eye_player_direction(Shader &bounding_box_shader,
 }
 
 bool Enemy::is_player_visible() const {
-  // player is visible if [eye, player] segment doesn't intersect any mesh box
+  // player is visible if the following is true:
+  // - angle between enemy's looking direction and eye-player direction is less
+  // than 90
+  // - [eye, player] segment doesn't intersect any mesh box
+
   auto [eye_O, eye_player_direction] = get_eye_player_direction();
+  auto eye_looking_direction = get_eye_direction().second;
+
+  float eye_player_angle =
+      glm::degrees(glm::angle(glm::normalize(eye_looking_direction),
+                              glm::normalize(eye_player_direction)));
+
+  // angle always returns positive value
+  if (eye_player_angle > 90) {
+    // - angle between enemy's looking direction and eye-player direction is NOT
+    // less than 90
+    return false;
+  }
+
+  // - [eye, player] segment doesn't intersect any mesh box
   return !m_level_manager.raycasting(eye_O, eye_O + eye_player_direction);
 }
 
@@ -365,12 +390,26 @@ bool Enemy::can_rotate_spine(bool left) const {
   return left ? angle < SPINE_ANGLE_MAX : angle > SPINE_ANGLE_MIN;
 }
 
+bool Enemy::attacking() const {
+  // return true if in attacking state or transitioning to attacking state
+  return m_state_machine.in_state(StateMachine::StateName::Attacking) ||
+         m_state_machine.transitioning_to_state(
+             StateMachine::StateName::Attacking);
+}
+
 float Enemy::get_aiming_angle() const {
+  // cannot get angle if player's position is unknown
+  assert(is_player_seen() && "player was seen at some point");
   // get angle between gun pipe and [gun_O, player] in XZ plane
   auto [gun_O, gun_direction] = get_gun_direction();
   gun_direction[1] = 0;
 
-  auto gun_player_direction = m_level_manager.player_position() - gun_O;
+  // get current player's position if in attacking state, otherwise get the last
+  // seen player's position
+  const auto &player_pos = attacking() ? m_level_manager.player_position()
+                                       : m_state_machine.m_player_seen_position;
+
+  auto gun_player_direction = player_pos - gun_O;
   gun_player_direction[1] = 0;
 
   return glm::degrees(glm::orientedAngle(
@@ -380,9 +419,16 @@ float Enemy::get_aiming_angle() const {
 }
 
 Enemy::Aiming Enemy::get_aim() const {
+  // check cache
+  if (m_under_aim_during_chasing) {
+    return Enemy::Aiming::UnderAim;
+  }
+
   float aiming_angle = get_aiming_angle();
 
   if (fabs(aiming_angle) < UNDER_AIM_THRESHOLD) {
+    m_under_aim_during_chasing =
+        m_state_machine.in_state(StateMachine::StateName::Chasing);
     return Enemy::Aiming::UnderAim;
   }
 
@@ -421,17 +467,38 @@ bool Enemy::find_path() {
 }
 
 void Enemy::set_shot() { m_state_machine.m_is_shot = true; }
-
 bool Enemy::is_shot() const { return m_state_machine.m_is_shot; }
+
+void Enemy::set_player_seen() {
+  m_state_machine.m_player_seen_time = std::time(nullptr);
+  m_state_machine.m_player_seen_position = m_level_manager.player_position();
+}
+
+bool Enemy::is_player_seen() const {
+  return m_state_machine.m_player_seen_time != 0;
+}
+
+unsigned int Enemy::player_seen_seconds_passed() const {
+  assert(m_state_machine.m_player_seen_time != 0 &&
+         "player was seen at some point");
+  return std::time(nullptr) - m_state_machine.m_player_seen_time;
+}
 
 bool Enemy::change_state(StateMachine::StateName state_name) {
   // invalidate the cache
-  m_spine_angle_cache.second = false;
+  init_cache();
   return m_state_machine.change_state(state_name);
 }
 
 void Enemy::update(float current_time) {
   // update enemy's state - change state or perform some todo action if exists
-  m_bt.update();
+  if (++m_tick_count % AI_REFRESH_INTERVAL == 0) {
+    m_bt.update();
+  }
   m_state_machine.update(m_timer.tick(current_time));
+}
+
+void Enemy::init_cache() {
+  m_spine_angle_cache = {0, false};
+  m_under_aim_during_chasing = false;
 }

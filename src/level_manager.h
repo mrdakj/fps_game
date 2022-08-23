@@ -35,6 +35,7 @@ public:
       // times which will copy the first enemy id to all enemies
       m_enemies.emplace_back(*this);
     }
+
     m_enemies[0].set_transformation(glm::vec3(2, 0.1, -2));
     m_enemies[1].set_transformation(glm::vec3(-2, 0.1, -2));
     m_enemies[2].set_transformation(glm::vec3(-5, 0.1, -23));

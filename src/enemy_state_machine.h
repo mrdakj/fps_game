@@ -4,6 +4,7 @@
 #include "animation_controller.h"
 #include "nav_mesh.h"
 #include <cassert>
+#include <ctime>
 #include <memory>
 #include <optional>
 #include <string>
@@ -11,23 +12,27 @@
 
 class Enemy;
 class EnemyState;
+class Alive;
 class Dead;
 class Attacking;
+class Chasing;
 class Patrolling;
 
 class StateMachine {
   friend class Enemy;
   friend class EnemyState;
+  friend class Alive;
   friend class Dead;
   friend class Attacking;
+  friend class Chasing;
   friend class Patrolling;
 
 public:
   StateMachine(Enemy &owner);
 
-  // Alive state - Attacking, Patrolling
+  // Alive state - Attacking, Chasing, Patrolling
   // Dead state
-  enum class StateName { Attacking, Patrolling, Dead };
+  enum class StateName { Attacking, Chasing, Patrolling, Dead };
 
   enum class Action {
     FallDead,
@@ -46,6 +51,8 @@ public:
     switch (state_name) {
     case StateName::Attacking:
       return "Attacking";
+    case StateName::Chasing:
+      return "Chasing";
     case StateName::Patrolling:
       return "Patrolling";
     case StateName::Dead:
@@ -124,6 +131,7 @@ private:
 
   // return true if enemy is in the given state
   bool in_state(StateName state_name) const;
+  bool transitioning_to_state(StateName state_name) const;
 
 private:
   static std::unordered_map<Position, std::string> s_positions;
@@ -137,6 +145,8 @@ private:
 
   // ------------- enemy state ------------
   bool m_is_shot = false;
+  std::time_t m_player_seen_time = 0;
+  glm::vec3 m_player_seen_position;
   // --------------------------------------
 
   Enemy &m_owner;
@@ -189,6 +199,10 @@ public:
   StateMachine::Position get_start_position() const;
 
 protected:
+  void do_rotate_action(std::pair<const StateMachine::Action,
+                                  StateMachine::ActionStatus> &action_status,
+                        float delta_time);
+
   StateMachine::Position m_start_position;
 };
 
@@ -206,6 +220,16 @@ public:
 class Attacking : public Alive {
 public:
   Attacking(StateMachine &owner);
+
+  bool enter(float delta_time) override;
+  void execute(float delta_time) override;
+
+  void register_todo_action(StateMachine::Action action) override;
+};
+
+class Chasing : public Alive {
+public:
+  Chasing(StateMachine &owner);
 
   bool enter(float delta_time) override;
   void execute(float delta_time) override;
