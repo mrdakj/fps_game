@@ -23,8 +23,16 @@ public:
   glm::mat4 get_final_global_transformation_for_animation(
       const std::string &animation_name);
 
-  virtual void render(Shader &shader, Shader &bounding_box_shader,
-                      const Camera &camera, const Light &light) const;
+  virtual void render(Shader &shader, const Camera &camera, const Light &light,
+                      const std::vector<unsigned int> &render_object_ids,
+                      bool exclude) const;
+
+  virtual void render(Shader &shader, const Camera &camera,
+                      const Light &light) const;
+
+  virtual void render_boxes(Shader &bounding_box_shader,
+                            const Camera &camera) const;
+
   void render_to_texture(Shader &shader, const Camera &camera) const;
   void render_primitive(Shader &shader, const Camera &camera,
                         unsigned int entry, unsigned int primitive);

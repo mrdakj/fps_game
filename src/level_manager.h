@@ -43,7 +43,7 @@ public:
     m_enemies[4].set_transformation(glm::vec3(-20, 0.1, -33));
 
     for (int i = 0; i < m_enemies.size(); ++i) {
-      assert(m_enemies[i].m_id == i && "id valid");
+      assert(m_enemies[i].id() == i && "id valid");
       add_enemy_to_room(i);
     }
   }
@@ -197,8 +197,9 @@ public:
 
   void render_enemies() {
     for (unsigned int enemy_index : m_enemies_to_render) {
-      m_enemies[enemy_index].render(skinned_mesh_shader, bounding_box_shader,
-                                    m_camera, light);
+      m_enemies[enemy_index].render(skinned_mesh_shader,
+                                    skinned_mesh_no_light_shader,
+                                    bounding_box_shader, m_camera, light);
     }
   }
 
@@ -297,14 +298,22 @@ public:
   // objects used for rendering
   Light light{glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 0.5f, 0.0f)};
 
-  Shader basic_shader{"../res/shaders/default.vert",
-                      "../res/shaders/default.frag"};
+  Shader skinned_mesh_no_light_shader{
+      "../res/shaders/skinned_mesh.vert",
+      "../res/shaders/skinned_mesh_no_light.frag"};
+
   Shader skinned_mesh_shader{"../res/shaders/skinned_mesh.vert",
                              "../res/shaders/skinned_mesh.frag"};
+
   Shader bounding_box_shader{"../res/shaders/bounding_box.vert",
                              "../res/shaders/bounding_box.frag"};
+
+  // Shader default_shader{"../res/shaders/default.vert",
+  //                       "../res/shaders/default.frag"};
+
   Shader picking_shader{"../res/shaders/picking.vert",
                         "../res/shaders/picking.frag"};
+
   Shader picking_primitive_shader{"../res/shaders/picking_primitive.vert",
                                   "../res/shaders/picking_primitive.frag"};
 };

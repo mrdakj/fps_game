@@ -15,7 +15,8 @@
 Player::Player(Camera &camera)
     : AnimatedMesh("../res/models/fps_pistol/fps_pistol.gltf"),
       m_camera(camera) {
-  auto [animation_finised, global_transormation] = m_skinned_mesh.get_bones_for_animation("shoot", 0);
+  auto [animation_finised, global_transormation] =
+      m_skinned_mesh.get_bones_for_animation("shoot", 0);
   set_global_transformation(std::move(global_transormation));
   set_user_scaling();
   set_user_rotation();
@@ -24,7 +25,12 @@ Player::Player(Camera &camera)
 
 void Player::render(Shader &shader, Shader &bounding_box_shader,
                     const Light &light) const {
-  AnimatedMesh::render(shader, bounding_box_shader, m_camera, light);
+  AnimatedMesh::render(shader, m_camera, light);
+
+#ifdef FPS_DEBUG
+  // for testing only
+  AnimatedMesh::render_boxes(bounding_box_shader, m_camera);
+#endif
 }
 
 void Player::set_orientation(glm::vec3 orientation) {
@@ -51,7 +57,7 @@ void Player::set_position(glm::vec3 position) {
 void Player::set_user_scaling() {
   m_scaling = glm::scale(glm::mat4(1.0f), glm::vec3(0.01, 0.01, 0.01));
   // m_scaling = glm::scale(glm::mat4(1.0f), glm::vec3(1, 1, 1));
-  AnimatedMesh::set_user_transformation(m_translation*m_rotation*m_scaling);
+  AnimatedMesh::set_user_transformation(m_translation * m_rotation * m_scaling);
 }
 
 void Player::set_user_rotation() {
@@ -72,7 +78,7 @@ void Player::set_user_rotation() {
 
   m_rotation = rotUp * rotXZ;
   // m_rotation = glm::mat4(1.0f);
-  AnimatedMesh::set_user_transformation(m_translation*m_rotation*m_scaling);
+  AnimatedMesh::set_user_transformation(m_translation * m_rotation * m_scaling);
 }
 
 void Player::set_user_translation() {
@@ -85,5 +91,5 @@ void Player::set_user_translation() {
       m_camera.position() + 0.75f * m_camera.orientation() + 0.3f * downVector);
   // m_translation = glm::translate(glm::mat4(1.0), glm::vec3(0, 1.4, -3));
 
-  AnimatedMesh::set_user_transformation(m_translation*m_rotation*m_scaling);
+  AnimatedMesh::set_user_transformation(m_translation * m_rotation * m_scaling);
 }

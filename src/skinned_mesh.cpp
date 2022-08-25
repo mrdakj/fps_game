@@ -405,6 +405,40 @@ glm::mat4 SkinnedMesh::calculate_bones_transformations(
   return root_global_transform;
 }
 
+std::vector<unsigned int>
+SkinnedMesh::get_render_object_ids(const std::string &node_name) const {
+  auto node_ptr_it = m_transformation_tree->nodes_index.find(node_name);
+  assert(node_ptr_it != m_transformation_tree->nodes_index.end() &&
+         "transformation node found");
+
+  std::vector<unsigned int> render_object_ids;
+
+  std::queue<const TransformationNode *> queue;
+  queue.push(node_ptr_it->second);
+
+  while (!queue.empty()) {
+    const auto current_node = queue.front();
+    queue.pop();
+
+    auto render_object_it = m_nodes_to_render_object_index->find(current_node);
+
+    if (render_object_it != m_nodes_to_render_object_index->end()) {
+      assert(!current_node->meshes.empty() && "render object has mashes");
+      // object is a mesh add its index to the result
+      render_object_ids.push_back(render_object_it->second);
+    } else {
+      assert(current_node->meshes.empty() &&
+             "not renderable object doesn't have mashes");
+    }
+
+    for (const auto &child : current_node->children) {
+      queue.push(child.get());
+    }
+  }
+
+  return render_object_ids;
+}
+
 void SkinnedMesh::rotate_bone(const std::string &bone_name,
                               const glm::quat &q) {
   auto node_ptr_it = m_transformation_tree->nodes_index.find(bone_name);
@@ -417,6 +451,23 @@ void SkinnedMesh::rotate_bone(const std::string &bone_name,
   auto scaling = glm::scale(glm::mat4(1.0f), node_transform.local_scaling);
   auto rotation = glm::mat4(node_transform.local_rotation);
   node_transform.local_transformation = translation * rotation * scaling;
+  // TODO improve performance by updating only children
+  update_global_transformations(m_transformation_tree->root_node);
+}
+
+void SkinnedMesh::scale_node(const std::string &node_name,
+                             const glm::vec3 &scaling_vector) {
+  auto node_ptr_it = m_transformation_tree->nodes_index.find(node_name);
+  assert(node_ptr_it != m_transformation_tree->nodes_index.end() &&
+         "node name valid");
+  auto &node_transform = get_node_transformation(node_ptr_it->second);
+  node_transform.local_scaling *= scaling_vector;
+  auto translation =
+      glm::translate(glm::mat4(1.0f), node_transform.local_translation);
+  auto scaling = glm::scale(glm::mat4(1.0f), node_transform.local_scaling);
+  auto rotation = glm::mat4(node_transform.local_rotation);
+  node_transform.local_transformation = translation * rotation * scaling;
+  // TODO improve performance by updating only children
   update_global_transformations(m_transformation_tree->root_node);
 }
 
@@ -453,18 +504,15 @@ void SkinnedMesh::render(Shader &shader, const Camera &camera,
   set_bones_transformation_uniforms(shader);
 
   // render all
-  for (const auto render_object : *m_render_objects) {
-    assert(!render_object->meshes.empty() && "render object has meshes");
-    for (unsigned int mesh_id : render_object->meshes) {
-      render_mesh(shader, mesh_id,
-                  get_node_transformation(render_object).global_transformation);
-    }
+  for (unsigned int id = 0; id < m_render_objects->size(); ++id) {
+    render_object(shader, id);
   }
 }
 
 void SkinnedMesh::render(Shader &shader, const Camera &camera,
                          const Light &light,
-                         const std::vector<unsigned int> &ids_to_render) const {
+                         const std::vector<unsigned int> &render_object_ids,
+                         bool exclude) const {
 
   // basic rendering
   shader.activate();
@@ -477,14 +525,35 @@ void SkinnedMesh::render(Shader &shader, const Camera &camera,
   // set bones transformations
   set_bones_transformation_uniforms(shader);
 
-  for (unsigned int id : ids_to_render) {
-    assert(!(*m_render_objects)[id]->meshes.empty() &&
-           "render object has meshes");
-    for (unsigned int mesh_id : (*m_render_objects)[id]->meshes) {
-      render_mesh(shader, mesh_id,
-                  get_node_transformation((*m_render_objects)[id])
-                      .global_transformation);
+  if (!exclude) {
+    // render only given objects
+    for (unsigned int id : render_object_ids) {
+      render_object(shader, id);
     }
+  } else {
+    // render everything but given objects
+    // assumption is that render_object_ids is sorted
+    int current_to_exclude = 0;
+    for (unsigned int id = 0; id < m_render_objects->size(); ++id) {
+      if (current_to_exclude < render_object_ids.size() &&
+          render_object_ids[current_to_exclude] == id) {
+        ++current_to_exclude;
+        continue;
+      }
+
+      render_object(shader, id);
+    }
+  }
+}
+
+void SkinnedMesh::render_object(Shader &shader, unsigned int object_id) const {
+
+  assert(!(*m_render_objects)[object_id]->meshes.empty() &&
+         "render object has meshes");
+  for (unsigned int mesh_id : (*m_render_objects)[object_id]->meshes) {
+    render_mesh(shader, mesh_id,
+                get_node_transformation((*m_render_objects)[object_id])
+                    .global_transformation);
   }
 }
 

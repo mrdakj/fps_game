@@ -145,6 +145,7 @@ private:
 
   // ------------- enemy state ------------
   bool m_is_shot = false;
+  bool m_is_shooting = false;
   std::time_t m_player_seen_time = 0;
   glm::vec3 m_player_seen_position;
   // --------------------------------------

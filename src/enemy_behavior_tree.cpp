@@ -243,13 +243,27 @@ NodeState SetState::tick() {
 // --------------------- SetState End ---------------------------------
 
 // --------------------- Shoot ---------------------------------
-int counter = 1;
 Shoot::Shoot(EnemyBT &bt) : EnemyBTAction(bt, StateMachine::Action::Shoot) {}
 
 NodeState Shoot::tick() {
-  // std::cout << "shoot " << ++counter << std::endl;
+  auto action_status = m_bt.m_enemy.get_action_status(m_action);
+
+  if (action_status) {
+    auto node_state = from_action_status(*action_status);
+    if (node_state == NodeState::Success) {
+      m_bt.m_enemy.remove_todo_action(m_action);
+    }
+    return node_state;
+  }
+
+  // action is not active - create a new one
+  m_bt.m_enemy.start_shooting();
+  m_bt.m_enemy.register_todo_action(m_action);
+  return NodeState::Running;
   return NodeState::Success;
 }
+
+void Shoot::halt() { m_bt.m_enemy.stop_shooting(); }
 // --------------------- Shoot End ---------------------------------
 
 // --------------------- UnderAim ---------------------------------

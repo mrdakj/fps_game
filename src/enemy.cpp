@@ -14,6 +14,7 @@
 const std::string Enemy::LEFT_EYE_BONE = "swat:LeftEye_010";
 const std::string Enemy::SPINE_BONE = "swat:Spine_02";
 const std::string Enemy::GUN = "gun";
+const std::string Enemy::FLASH = "flash";
 // enemy is originally facing negative x-axis
 const glm::vec3 Enemy::FRONT_DIRECTION = glm::vec3(-1, 0, 0);
 // enemy's scale
@@ -45,7 +46,8 @@ unsigned int Enemy::get_id() {
 Enemy::Enemy(const LevelManager &level_manger)
     : AnimatedMesh(Enemy::get_animated_mesh_instance()), m_id(Enemy::get_id()),
       m_level_manager(level_manger), m_state_machine(*this), m_bt(*this),
-      m_tick_count(0) {
+      m_tick_count(0),
+      m_effects_to_render(m_skinned_mesh.get_render_object_ids(Enemy::FLASH)) {
   init_cache();
 
   auto scaling = glm::scale(glm::mat4(1.0f), glm::vec3(Enemy::SCALING_FACTOR));
@@ -58,7 +60,8 @@ Enemy::Enemy(const Enemy &other)
     : AnimatedMesh(other), m_id(other.m_id),
       m_level_manager(other.m_level_manager),
       // it is important to create a new state
-      m_state_machine(*this), m_bt(*this), m_tick_count(other.m_tick_count) {
+      m_state_machine(*this), m_bt(*this), m_tick_count(other.m_tick_count),
+      m_effects_to_render(other.m_effects_to_render) {
   init_cache();
   AnimatedMesh::set_user_transformation(other.user_transformation());
 }
@@ -195,12 +198,23 @@ void Enemy::create_transition_animation(const std::string &animation_name,
                                              bone_to_ignore);
 }
 
-void Enemy::render(Shader &shader, Shader &bounding_box_shader,
-                   const Camera &camera, const Light &light) const {
-  AnimatedMesh::render(shader, bounding_box_shader, camera, light);
+void Enemy::render(Shader &shader, Shader &effects_shader,
+                   Shader &bounding_box_shader, const Camera &camera,
+                   const Light &light) const {
+  // render everything but effect objects
+  AnimatedMesh::render(shader, camera, light, m_effects_to_render,
+                       true /* exclude */);
+
+  if (is_shooting()) {
+    // render only effect objects
+    AnimatedMesh::render(effects_shader, camera, light, m_effects_to_render,
+                         false /* exclude */);
+  }
 
 #ifdef FPS_DEBUG
   // for testing only
+  AnimatedMesh::render_boxes(bounding_box_shader, camera);
+
   render_gun_direction(bounding_box_shader, camera);
   render_eye_direction(bounding_box_shader, camera);
   render_eye_player_direction(bounding_box_shader, camera);
@@ -502,3 +516,9 @@ void Enemy::init_cache() {
   m_spine_angle_cache = {0, false};
   m_under_aim_during_chasing = false;
 }
+
+bool Enemy::is_shooting() const { return m_state_machine.m_is_shooting; }
+void Enemy::stop_shooting() { m_state_machine.m_is_shooting = false; }
+void Enemy::start_shooting() { m_state_machine.m_is_shooting = true; }
+
+unsigned int Enemy::id() const { return m_id; }

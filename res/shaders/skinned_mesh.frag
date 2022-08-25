@@ -39,9 +39,9 @@ vec4 pointLight(vec2 uvTransformed)
 	float ambient = 0.20f;
 
 	// diffuse lighting
-	vec3 normal = normalize(Normal);
-	vec3 lightDirection = normalize(lightVec);
-	float diffuse = max(dot(normal, lightDirection), 0.0f);
+    vec3 normal = normalize(Normal);
+    vec3 lightDirection = normalize(lightVec);
+    float diffuse = max(dot(normal, lightDirection), 0.0f);
 
 	// specular lighting
 	float specularLight = 0.50f;

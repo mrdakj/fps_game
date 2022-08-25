@@ -48,7 +48,7 @@ void Map::render(Shader &shader, Shader &bounding_box_shader,
                  const std::vector<unsigned int> &mesh_ids) const {
   shader.activate();
   shader.set_uniform("transformation", glm::mat4(1.0f));
-  m_mesh.render(shader, camera, light, mesh_ids);
+  m_mesh.render(shader, camera, light, mesh_ids, false /* exclude */);
 
 #ifdef FPS_DEBUG
   render_nav_meshes(bounding_box_shader, camera);

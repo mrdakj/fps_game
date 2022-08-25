@@ -123,6 +123,8 @@ class Shoot : public EnemyBTAction {
 public:
   Shoot(EnemyBT &bt);
   NodeState tick() override;
+
+  void halt() override;
 };
 
 class ExecutePath : public EnemyBTAction {

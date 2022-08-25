@@ -177,7 +177,8 @@ public:
 
   // render specific objects
   void render(Shader &shader, const Camera &camera, const Light &light,
-              const std::vector<unsigned int> &ids_to_render) const;
+              const std::vector<unsigned int> &render_object_ids,
+              bool exclude) const;
 
   // rendering to texture for mouse picking
   void render_to_texture(Shader &shader, const Camera &camera) const;
@@ -190,6 +191,9 @@ public:
   void render_primitive(Shader &shader, const Camera &camera,
                         unsigned int entry_index,
                         unsigned int primitive_index) const;
+
+  std::vector<unsigned int>
+  get_render_object_ids(const std::string &node_name) const;
 
   // construct bounding volume hierarchy
   // packed means all boxes are in one aabb
@@ -213,6 +217,8 @@ public:
 
   const glm::mat4 &
   node_local_transformation(const std::string &node_name) const;
+
+  void scale_node(const std::string &node_name, const glm::vec3 &scaling);
 
   void rotate_bone(const std::string &bone_name, const glm::quat &q);
 
@@ -253,6 +259,8 @@ private:
                                             float animation_time,
                                             TransformationNode &node,
                                             const glm::mat4 &parent_transform);
+
+  void render_object(Shader &shader, unsigned int object_id) const;
 
   // render one mesh entry
   void render_mesh(Shader &shader, unsigned int mesh_id,

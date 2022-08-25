@@ -48,16 +48,27 @@ void AnimatedMesh::render_primitive(Shader &shader, const Camera &camera,
   m_skinned_mesh.render_primitive(shader, camera, entry, primitive);
 }
 
-void AnimatedMesh::render(Shader &shader, Shader &bounding_box_shader,
-                          const Camera &camera, const Light &light) const {
+void AnimatedMesh::render(Shader &shader, const Camera &camera,
+                          const Light &light) const {
   shader.activate();
   shader.set_uniform("transformation",
                      m_user_transformation * m_global_transformation);
   m_skinned_mesh.render(shader, camera, light);
+}
 
-#ifdef FPS_DEBUG
+void AnimatedMesh::render(Shader &shader, const Camera &camera,
+                          const Light &light,
+                          const std::vector<unsigned int> &render_object_ids,
+                          bool exclude) const {
+  shader.activate();
+  shader.set_uniform("transformation",
+                     m_user_transformation * m_global_transformation);
+  m_skinned_mesh.render(shader, camera, light, render_object_ids, exclude);
+}
+
+void AnimatedMesh::render_boxes(Shader &bounding_box_shader,
+                                const Camera &camera) const {
   render_boxes(*get_bvh(), bounding_box_shader, camera);
-#endif
 }
 
 void AnimatedMesh::render_boxes(const BVHNode<BoundingBox> &node,

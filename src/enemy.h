@@ -54,8 +54,9 @@ public:
                                    float animation_duration,
                                    const std::string &bone_to_ignore = "");
 
-  void render(Shader &shader, Shader &bounding_box_shader, const Camera &camera,
-              const Light &light) const override;
+  void render(Shader &shader, Shader &effects_shader,
+              Shader &bounding_box_shader, const Camera &camera,
+              const Light &light) const;
   // --------------------------------------------------------------------------
 
   // ------------------ spine control -----------------------------
@@ -87,6 +88,10 @@ public:
   // check if enemy is shot
   bool is_shot() const;
 
+  bool is_shooting() const;
+  void stop_shooting();
+  void start_shooting();
+
   void set_player_seen();
   bool is_player_seen() const;
   // how many seconds passed since the last time player was seen
@@ -100,6 +105,8 @@ public:
 
   // return UnderAim, Left or Right depending on gun-player angle
   Aiming get_aim() const;
+
+  unsigned int id() const;
 
   // update enemy's state
   void update(float current_time);
@@ -142,10 +149,11 @@ public:
   static const std::string GUN;
   static const glm::vec3 FRONT_DIRECTION;
   static const float SCALING_FACTOR;
+  static const std::string FLASH;
   // -----------------------------------------------
 
   // ---------------- member vars -----------------------
-public:
+private:
   static AnimatedMesh &get_animated_mesh_instance();
   static unsigned int get_id();
 
@@ -160,6 +168,8 @@ public:
   Timer m_timer;
   // how many times update is called
   unsigned int m_tick_count;
+  // id of effect objects to render (gun flash)
+  std::vector<unsigned int> m_effects_to_render;
   // ---------------- cache -----------------------------
   mutable std::pair<float, bool> m_spine_angle_cache;
   mutable bool m_under_aim_during_chasing;
