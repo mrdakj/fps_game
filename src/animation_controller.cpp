@@ -1,11 +1,23 @@
 #include "animation_controller.h"
+#include "sound.h"
+#include <future>
 
 AnimationController::AnimationController(AnimatedMesh &mesh, std::string name,
                                          bool reversed, float speed_factor,
                                          bool update_global)
     : m_mesh(mesh), m_name(std::move(name)), m_reversed(reversed),
       m_speed_factor(speed_factor), m_update_global(update_global),
-      m_current_animation_time(m_reversed ? -1 : 0) {}
+      m_current_animation_time(m_reversed ? -1 : 0),
+      m_sound_track(std::nullopt) {}
+
+AnimationController::AnimationController(AnimatedMesh &mesh, std::string name,
+                                         Sound::Track sound_track,
+                                         bool reversed, float speed_factor,
+                                         bool update_global)
+    : m_mesh(mesh), m_name(std::move(name)), m_reversed(reversed),
+      m_speed_factor(speed_factor), m_update_global(update_global),
+      m_current_animation_time(m_reversed ? -1 : 0),
+      m_sound_track(sound_track) {}
 
 std::pair<bool, glm::mat4> AnimationController::update(float delta_time) {
   if (m_update_global && m_reversed && m_first_tick) {
@@ -23,6 +35,10 @@ std::pair<bool, glm::mat4> AnimationController::update(float delta_time) {
 
   if (m_update_global) {
     m_mesh.set_global_transformation(global_transformation);
+  }
+
+  if (m_first_tick && m_sound_track) {
+    SoundPlayer::instance().play_track(*m_sound_track);
   }
 
   m_first_tick = false;

@@ -1,5 +1,6 @@
 #include "enemy_state_machine.h"
 #include "enemy.h"
+#include "sound.h"
 #include <glm/gtx/vector_angle.hpp>
 
 #define EPS 0.001
@@ -30,7 +31,8 @@ StateMachine::StateMachine(Enemy &owner)
            {Action::RotateRight, {owner, "rotate", false, 2.0f, true}},
            {Action::FallDead, {owner, "fall_dead", false, 1.0f}},
            {Action::Walk, {owner, "walk", false, 0.8f, false}},
-           {Action::Shoot, {owner, "shoot", false, 1.0f}},
+           {Action::Shoot,
+            {owner, "shoot", Sound::Track::RifleShoot, false, 2.0f}},
            {Action::Transition, {owner, "transition", false}}}) {
 
   // create Attacking, Chasing, Patrolling and Dead states
@@ -410,9 +412,9 @@ void Attacking::execute(float delta_time) {
       if (finished) {
         action_status.second = StateMachine::ActionStatus::Success;
       }
-
-      break;
     }
+
+    break;
 
     default:
       assert(false && "not supported action in attacking state");

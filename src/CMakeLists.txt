@@ -42,6 +42,7 @@ add_library(picking_texture picking_texture.cpp picking_texture.h)
 add_library(level_manager level_manager.cpp level_manager.h)
 add_library(node node.cpp node.h)
 add_library(timer timer.cpp timer.h)
+add_library(sound sound.cpp sound.h)
 add_executable(main main.cpp)
-target_link_libraries (main shader camera map level_manager cursor animated_mesh player enemy timer collision_object player_controller enemy_behavior_tree enemy_state_machine collision_detector object_controller input_controller animation_controller skinned_mesh nav_mesh texture stb  material assimp channel light animation node utility bounding_box aabb picking_texture OpenGL::GL glfw GLEW::GLEW)
+target_link_libraries (main shader camera map level_manager cursor animated_mesh player enemy timer collision_object player_controller enemy_behavior_tree enemy_state_machine collision_detector object_controller input_controller animation_controller skinned_mesh nav_mesh texture stb  material assimp channel light animation node utility bounding_box aabb picking_texture sound  OpenGL::GL glfw GLEW::GLEW)
 

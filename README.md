@@ -15,7 +15,7 @@ Project is still work in progress. It is an example of fps game. Goal is to impl
 - 3d model mouse selection :heavy_check_mark:
 - NPC AI :heavy_check_mark: (to be improved)
 - level creation - add more objects :heavy_check_mark: (to be improved)
-- sound (to be done)
+- sound :heavy_check_mark:
 
 ## :package: Installation
 
@@ -72,3 +72,7 @@ Run:
 ## 3D Models
 
 [Models licenses](./models_licenses.md)
+
+## Sound
+
+[Sound](https://www.fesliyanstudios.com/sound-effects-search.php?q=)

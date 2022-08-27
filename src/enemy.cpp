@@ -28,7 +28,9 @@ const float Enemy::SCALING_FACTOR = 0.01;
 #define SPINE_ANGLE_MAX (40)
 
 #define UNDER_AIM_THRESHOLD (5)
+
 #define PLAYER_CLOSE_THRESHOLD (15)
+#define PLAYER_VERY_CLOSE_THRESHOLD (3)
 
 AnimatedMesh &Enemy::get_animated_mesh_instance() {
   // instantiated on first use
@@ -278,31 +280,47 @@ void Enemy::render_eye_player_direction(Shader &bounding_box_shader,
 
 bool Enemy::is_player_visible() const {
   // player is visible if the following is true:
-  // - angle between enemy's looking direction and eye-player direction is less
-  // than 90
+  // - player is not too far
   // - [eye, player] segment doesn't intersect any mesh box
+  // - player is very close or angle between enemy's looking direction and
+  // eye-player direction is less than 90
 
-  auto [eye_O, eye_player_direction] = get_eye_player_direction();
-  auto eye_looking_direction = get_eye_direction().second;
-
-  float eye_player_angle =
-      glm::degrees(glm::angle(glm::normalize(eye_looking_direction),
-                              glm::normalize(eye_player_direction)));
-
-  // angle always returns positive value
-  if (eye_player_angle > 90) {
-    // - angle between enemy's looking direction and eye-player direction is NOT
-    // less than 90
+  if (!is_player_close(PLAYER_CLOSE_THRESHOLD)) {
+    // player is too far
     return false;
   }
 
-  // - [eye, player] segment doesn't intersect any mesh box
-  return !m_level_manager.raycasting(eye_O, eye_O + eye_player_direction);
+  // - player is not too far
+
+  auto [eye_O, eye_player_direction] = get_eye_player_direction();
+
+  if (is_player_close(PLAYER_VERY_CLOSE_THRESHOLD)) {
+    // - player is very close
+
+    // - [eye, player] segment doesn't intersect any mesh box
+    return !m_level_manager.raycasting(eye_O, eye_O + eye_player_direction);
+  }
+
+  // - player is not very close
+
+  auto eye_looking_direction = get_eye_direction().second;
+
+  float eye_player_angle =
+      // angle always returns positive value
+      glm::degrees(glm::angle(glm::normalize(eye_looking_direction),
+                              glm::normalize(eye_player_direction)));
+
+  return
+      // - angle between enemy's looking direction and eye-player direction is
+      // less than 90
+      eye_player_angle < 90 &&
+      // - [eye, player] segment doesn't intersect any mesh box
+      !m_level_manager.raycasting(eye_O, eye_O + eye_player_direction);
 }
 
-bool Enemy::is_player_close() const {
+bool Enemy::is_player_close(unsigned int threshold) const {
   return glm::length2(get_position() - m_level_manager.player_position()) <
-         PLAYER_CLOSE_THRESHOLD * PLAYER_CLOSE_THRESHOLD;
+         threshold * threshold;
 }
 
 float Enemy::get_spine_angle() const {

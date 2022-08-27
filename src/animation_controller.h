@@ -2,6 +2,7 @@
 #define _ANIMATION_CONTROLLER_H_
 
 #include "animated_mesh.h"
+#include "sound.h"
 #include "utility.h"
 #include <algorithm>
 #include <cassert>
@@ -9,11 +10,16 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <future>
 
 struct AnimationController {
   AnimationController(AnimatedMesh &mesh, std::string name,
                       bool reversed = false, float speed_factor = 1.0f,
                       bool update_global = false);
+
+  AnimationController(AnimatedMesh &mesh, std::string name,
+                      Sound::Track sound_track, bool reversed = false,
+                      float speed_factor = 1.0f, bool update_global = false);
   std::pair<bool, glm::mat4> update(float delta_time);
 
   void on_animation_stop();
@@ -34,6 +40,8 @@ public:
   float m_speed_factor;
   // does animation update global position of the object
   bool m_update_global;
+  // optional sound
+  std::optional<Sound::Track> m_sound_track;
 
   // for non reversed animations start time is 0 and increases by (positive)
   // delta time for reversed animations start time is -1 and decreases by

@@ -1,5 +1,6 @@
 #include "player_controller.h"
 #include "animation_controller.h"
+#include "sound.h"
 
 #include <cmath>
 #include <glm/ext/scalar_constants.hpp>
@@ -11,8 +12,13 @@
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/trigonometric.hpp>
 #include <math.h>
+#include <thread>
 
 #define EPS 0.0001
+
+void stop_sound() { SoundPlayer::instance().stop_track(Sound::Track::Running); }
+
+void play_sound() { SoundPlayer::instance().play_track(Sound::Track::Running); }
 
 void PlayerController::update(float current_time) {
   process_inputs();
@@ -73,6 +79,7 @@ void PlayerController::process_keyboard_for_move() const {
   }
 
   if (!key_pressed) {
+    stop_sound();
     return;
   }
 
@@ -148,6 +155,8 @@ void PlayerController::process_keyboard_for_move() const {
   if (!resolve_collision()) {
     m_player.set_position(saved_position);
   }
+
+  play_sound();
 }
 
 void PlayerController::process_mouse_for_rotation() const {

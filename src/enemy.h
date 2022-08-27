@@ -100,8 +100,6 @@ public:
 
   // return true if player is visible
   bool is_player_visible() const;
-  // return true if player is close
-  bool is_player_close() const;
 
   // return UnderAim, Left or Right depending on gun-player angle
   Aiming get_aim() const;
@@ -138,6 +136,9 @@ private:
 
   // return true if in attacking state or transitioning to attacking state
   bool attacking() const;
+
+  // return true if player is close
+  bool is_player_close(unsigned int threshold) const;
 
   void init_cache();
   // ----------------------------------------------------------------

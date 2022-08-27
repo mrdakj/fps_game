@@ -20,6 +20,7 @@
 #include "player.h"
 #include "player_controller.h"
 #include "shader.h"
+#include "sound.h"
 #include <GLFW/glfw3.h>
 
 const int window_width = 2080;
@@ -124,7 +125,7 @@ int main(void) {
     frame_count++;
     // if a second has passed.
     if (current_time - previous_time >= 1.0) {
-      // std::cout << frame_count << std::endl;
+      std::cout << frame_count << std::endl;
 
       frame_count = 0;
       previous_time = current_time;

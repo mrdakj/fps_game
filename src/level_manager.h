@@ -26,7 +26,6 @@ public:
         m_camera(window_width, window_height, glm::vec3(10, 1.6, -32)),
         m_player(m_camera),
         m_player_controller(m_player, m_collision_detector, window) {
-
     m_enemies.reserve(ENEMIES_COUNT);
     for (unsigned int i = 0; i < ENEMIES_COUNT; ++i) {
       // call constructor for each enemy in order to create valid enemy's ids

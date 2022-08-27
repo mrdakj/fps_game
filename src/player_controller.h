@@ -15,7 +15,7 @@ public:
       : m_player(player), InputController(window),
         ObjectController(player, collision_detector),
         m_action_to_animation(
-            {{Player::Action::Shoot, {player, "shoot"}},
+            {{Player::Action::Shoot, {player, "shoot", Sound::Track::GunShoot}},
              {Player::Action::Recharge, {player, "CINEMA_4D_Main"}}}),
         m_todo_action{Player::Action::None} {}
 

@@ -127,10 +127,9 @@ NodeState PlayerVisible::tick() {
   auto player_visible_it =
       m_bt.m_blackboard.find(EnemyBT::BlackboardKeys::PlayerVisible);
 
-  bool player_visible =
-      player_visible_it != m_bt.m_blackboard.end()
-          ? player_visible_it->second == 1
-          : m_bt.m_enemy.is_player_close() && m_bt.m_enemy.is_player_visible();
+  bool player_visible = player_visible_it != m_bt.m_blackboard.end()
+                            ? player_visible_it->second == 1
+                            : m_bt.m_enemy.is_player_visible();
 
   m_bt.m_blackboard[EnemyBT::BlackboardKeys::PlayerVisible] = player_visible;
 
@@ -260,7 +259,6 @@ NodeState Shoot::tick() {
   m_bt.m_enemy.start_shooting();
   m_bt.m_enemy.register_todo_action(m_action);
   return NodeState::Running;
-  return NodeState::Success;
 }
 
 void Shoot::halt() { m_bt.m_enemy.stop_shooting(); }
