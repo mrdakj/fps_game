@@ -12,7 +12,16 @@
 #include <iostream>
 
 Camera::Camera(int width, int height, glm::vec3 position)
-    : m_width(width), m_height(height), m_position(std::move(position)) {}
+    : m_width(width), m_height(height), m_position(std::move(position)),
+      m_orientation(glm::vec3(0.0f, 0.0f, -1.0f)),
+      m_up(glm::vec3(0.0f, 1.0f, 0.0f)), m_camera_matrix(glm::mat4(1.0f)) {}
+
+void Camera::reset(glm::vec3 position) {
+  m_position = std::move(position);
+  m_orientation = glm::vec3(0.0f, 0.0f, -1.0f);
+  m_up = glm::vec3(0.0f, 1.0f, 0.0f);
+  m_camera_matrix = glm::mat4(1.0f);
+}
 
 void Camera::update_matrix() {
   auto view = glm::lookAt(m_position, m_position + m_orientation, m_up);

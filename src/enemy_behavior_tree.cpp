@@ -14,6 +14,8 @@ NodeState from_action_status(StateMachine::ActionStatus action_status) {
 // ------------ EnemyBT -------------------
 EnemyBT::EnemyBT(Enemy &enemy) : m_enemy(enemy), m_bt_root(construct_bt()) {}
 
+void EnemyBT::reset() { m_bt_root = construct_bt(); }
+
 void EnemyBT::update() {
   m_blackboard.clear();
   m_bt_root->tick();
@@ -58,6 +60,9 @@ std::unique_ptr<Node> EnemyBT::construct_bt() {
   // don't use reactive sequence because we will go to a chasing state if player
   // became invisible
   auto check_attacking_state = std::make_unique<SequenceNode>(
+      // player not dead
+      std::make_unique<Invert>(std::make_unique<PlayerDead>(*this)),
+      // player visible
       std::make_unique<PlayerVisible>(*this), std::move(attacking_state));
   // ------- Attacking state end ----------------
 
@@ -70,6 +75,8 @@ std::unique_ptr<Node> EnemyBT::construct_bt() {
       std::make_unique<Rotate>(*this));
 
   auto check_chasing_state = std::make_unique<SequenceNode>(
+      // player not dead
+      std::make_unique<Invert>(std::make_unique<PlayerDead>(*this)),
       // player seen duration lasts for 10 seconds
       std::make_unique<PlayerSeen>(*this, 10),
       std::make_unique<SetState>(*this, StateMachine::StateName::Chasing),
@@ -87,7 +94,12 @@ std::unique_ptr<Node> EnemyBT::construct_bt() {
       std::make_unique<ExecutePath>(*this));
 
   auto check_patrolling_state = std::make_unique<ReactiveFallbackNode>(
-      std::make_unique<PlayerVisible>(*this), std::move(patrolling_state));
+      std::make_unique<SequenceNode>(
+          // player not dead
+          std::make_unique<Invert>(std::make_unique<PlayerDead>(*this)),
+          // player visible
+          std::make_unique<PlayerVisible>(*this)),
+      std::move(patrolling_state));
   // --------- Idling/Patrolling state end -------------
 
   // --------- Alive state -----------------------
@@ -156,6 +168,15 @@ NodeState PlayerSeen::tick() {
           : NodeState::Failure;
 }
 // ----------- PlayerSeen End -------------------
+
+// -------------- PlayerDead ----------------------
+PlayerDead::PlayerDead(EnemyBT &bt) : EnemyBTNode(bt) {}
+
+NodeState PlayerDead::tick() {
+  return m_bt.m_enemy.is_player_dead() ? NodeState::Success
+                                       : NodeState::Failure;
+}
+// -------------- PlayerDead End ----------------------
 
 // --------- Rotate -------------
 Rotate::Rotate(EnemyBT &bt) : EnemyBTNode(bt) {}

@@ -98,6 +98,8 @@ public:
     return "unknown";
   }
 
+  void reset();
+
   // update current state or transition to some other state
   void update(float delta_time);
 
@@ -144,9 +146,9 @@ private:
   EnemyState *m_transitioning_state;
 
   // ------------- enemy state ------------
-  bool m_is_shot = false;
-  bool m_is_shooting = false;
-  std::time_t m_player_seen_time = 0;
+  bool m_is_shot;
+  bool m_is_shooting;
+  std::time_t m_player_seen_time;
   glm::vec3 m_player_seen_position;
   // --------------------------------------
 
@@ -213,7 +215,6 @@ public:
 
   bool enter(float delta_time) override;
   void execute(float delta_time) override;
-  void exit() override;
 
   void register_todo_action(StateMachine::Action action) override;
 };

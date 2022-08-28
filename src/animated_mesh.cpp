@@ -13,7 +13,14 @@
 #include <iostream>
 
 AnimatedMesh::AnimatedMesh(const std::string &file_name)
-    : m_skinned_mesh(file_name) {}
+    : m_skinned_mesh(file_name), m_user_transformation(glm::mat4(1.0f)),
+      m_global_transformation(glm::mat4(1.0f)) {}
+
+void AnimatedMesh::reset() {
+  m_user_transformation = glm::mat4(1.0f);
+  m_global_transformation = glm::mat4(1.0f);
+  clear_bounding_volumes();
+}
 
 std::pair<bool, glm::mat4>
 AnimatedMesh::update(const std::string &animation_name, float time_in_seconds,

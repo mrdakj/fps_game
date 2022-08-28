@@ -19,10 +19,13 @@ public:
   enum class Aiming : int { Left = -1, Right = 1, UnderAim = 0 };
 
   // -------------------- constructors ------------------------------
-  Enemy(const LevelManager &level_manager);
+  Enemy(LevelManager &level_manager,
+        const glm::vec3 &position = glm::vec3(0.0f), float degreesXZ = 0);
   // copy constructor needed to create a new state machine and behavior tree
   Enemy(const Enemy &other);
   // ------------------------------------------------------------------
+
+  void reset(const glm::vec3 &position = glm::vec3(0.0f), float degreesXZ = 0);
 
   // -------------------- transformation --------------------------------
   // set enemy's position and orientation
@@ -104,6 +107,10 @@ public:
   // return UnderAim, Left or Right depending on gun-player angle
   Aiming get_aim() const;
 
+  void shoot_player();
+
+  bool is_player_dead() const;
+
   unsigned int id() const;
 
   // update enemy's state
@@ -140,10 +147,16 @@ private:
   // return true if player is close
   bool is_player_close(unsigned int threshold) const;
 
+  float get_player_distance() const;
+
+  bool is_player_shot() const;
+
   void init_cache();
   // ----------------------------------------------------------------
 
 public:
+  static bool is_target_shot(float distance, float max_distance);
+
   // ---------------- static vars -------------------
   static const std::string LEFT_EYE_BONE;
   static const std::string SPINE_BONE;
@@ -164,7 +177,7 @@ private:
   // enemy's behavior tree
   EnemyBT m_bt;
   // reference to level manager
-  const LevelManager &m_level_manager;
+  LevelManager &m_level_manager;
   // timer to update the state
   Timer m_timer;
   // how many times update is called

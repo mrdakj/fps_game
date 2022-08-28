@@ -32,6 +32,26 @@ const float Enemy::SCALING_FACTOR = 0.01;
 #define PLAYER_CLOSE_THRESHOLD (15)
 #define PLAYER_VERY_CLOSE_THRESHOLD (3)
 
+// threshold when difference between player's and enemy's position is considered
+// as 0
+#define ZERO_DISTANCE (2)
+
+#define MAX_SHOT_PROBABILITY (1)
+#define MIN_SHOT_PROBABILITY (0.1)
+
+bool Enemy::is_target_shot(float distance, float max_distance) {
+  distance = std::max(0.0f, distance - ZERO_DISTANCE);
+  assert(distance >= 0 && max_distance >= 0 && "distances valid");
+  float p = distance > max_distance
+                ? 0
+                : ((max_distance - distance) / max_distance) *
+                          (MAX_SHOT_PROBABILITY - MIN_SHOT_PROBABILITY) +
+                      MIN_SHOT_PROBABILITY;
+
+  float u = static_cast<float>(rand()) / (static_cast<float>(RAND_MAX));
+  return u < p;
+}
+
 AnimatedMesh &Enemy::get_animated_mesh_instance() {
   // instantiated on first use
   static AnimatedMesh s_animated_mesh{"../res/models/enemy/enemy.gltf"};
@@ -45,17 +65,14 @@ unsigned int Enemy::get_id() {
   return current_id;
 }
 
-Enemy::Enemy(const LevelManager &level_manger)
+Enemy::Enemy(LevelManager &level_manger, const glm::vec3 &position,
+             float degreesXZ)
     : AnimatedMesh(Enemy::get_animated_mesh_instance()), m_id(Enemy::get_id()),
       m_level_manager(level_manger), m_state_machine(*this), m_bt(*this),
       m_tick_count(0),
       m_effects_to_render(m_skinned_mesh.get_render_object_ids(Enemy::FLASH)) {
   init_cache();
-
-  auto scaling = glm::scale(glm::mat4(1.0f), glm::vec3(Enemy::SCALING_FACTOR));
-  auto rotation = glm::mat4(1.0f);
-  auto translation = glm::mat4(1.0f);
-  AnimatedMesh::set_user_transformation(translation * rotation * scaling);
+  set_transformation(position, degreesXZ);
 }
 
 Enemy::Enemy(const Enemy &other)
@@ -66,6 +83,16 @@ Enemy::Enemy(const Enemy &other)
       m_effects_to_render(other.m_effects_to_render) {
   init_cache();
   AnimatedMesh::set_user_transformation(other.user_transformation());
+}
+
+void Enemy::reset(const glm::vec3 &position, float degreesXZ) {
+  m_tick_count = 0;
+  m_state_machine.reset();
+  m_bt.reset();
+
+  init_cache();
+
+  set_transformation(position, degreesXZ);
 }
 
 void Enemy::set_transformation(const glm::vec3 &position, float degreesXZ) {
@@ -429,6 +456,24 @@ bool Enemy::attacking() const {
              StateMachine::StateName::Attacking);
 }
 
+float Enemy::get_player_distance() const {
+  return glm::length(m_level_manager.player_position() - get_position());
+}
+
+bool Enemy::is_player_shot() const {
+  assert(m_state_machine.in_state(StateMachine::StateName::Attacking));
+  return Enemy::is_target_shot(get_player_distance(), PLAYER_CLOSE_THRESHOLD);
+}
+
+void Enemy::shoot_player() {
+  if (is_player_shot()) {
+    // deduce one live from player
+    m_level_manager.player_shot();
+  }
+}
+
+bool Enemy::is_player_dead() const { return m_level_manager.is_player_dead(); }
+
 float Enemy::get_aiming_angle() const {
   // cannot get angle if player's position is unknown
   assert(is_player_seen() && "player was seen at some point");
@@ -498,7 +543,11 @@ bool Enemy::find_path() {
   return true;
 }
 
-void Enemy::set_shot() { m_state_machine.m_is_shot = true; }
+void Enemy::set_shot() {
+  // SoundPlayer::instance().play_track(Sound::Track::GruntingHit);
+  m_state_machine.m_is_shot = true;
+}
+
 bool Enemy::is_shot() const { return m_state_machine.m_is_shot; }
 
 void Enemy::set_player_seen() {

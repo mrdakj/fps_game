@@ -107,6 +107,7 @@ std::pair<glm::vec3, glm::vec3>
 Path::get_next_point_and_direction(float delta_distance) {
   // get the next point and direction such that delta distance is moved across
   // the curve
+  assert(!m_curves.empty() && "curves is not empty");
   assert(m_current_curve < m_curves.size() && "current_curve valid");
 
   while (m_current_curve < m_curves.size()) {
@@ -351,11 +352,13 @@ NavMesh::get_triangle_path(const glm::vec3 &src, const glm::vec3 &dest) const {
   std::vector<unsigned int> path;
   auto maybe_src_traingle = get_triangle_for_point(src);
   if (!maybe_src_traingle) {
+    assert(false && "source point not in triangle");
     // no such path exists
     return path;
   }
   auto maybe_dest_traingle = get_triangle_for_point(dest);
   if (!maybe_dest_traingle) {
+    assert(false && "destination point not in triangle");
     // no such path exists
     return path;
   }

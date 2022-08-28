@@ -20,7 +20,33 @@ void stop_sound() { SoundPlayer::instance().stop_track(Sound::Track::Running); }
 
 void play_sound() { SoundPlayer::instance().play_track(Sound::Track::Running); }
 
+PlayerController::PlayerController(Player &player,
+                                   const CollistionDetector &collision_detector,
+                                   GLFWwindow *window)
+    : m_player(player), InputController(window),
+      ObjectController(player, collision_detector),
+      m_action_to_animation(
+          {{Player::Action::Shoot, {player, "shoot", Sound::Track::GunShoot}},
+           {Player::Action::Recharge, {player, "CINEMA_4D_Main"}}}),
+      m_todo_action{Player::Action::None} {}
+
+void PlayerController::reset() {
+  // reset todo action
+  m_todo_action = Player::Action::None;
+  // reset timer
+  m_timer.reset();
+  // reset animations
+  for (auto &action_animation : m_action_to_animation) {
+    action_animation.second.reset();
+  }
+}
+
 void PlayerController::update(float current_time) {
+  if (m_player.is_dead()) {
+    stop_sound();
+    return;
+  }
+
   process_inputs();
   animation_update(m_timer.tick(current_time));
 }

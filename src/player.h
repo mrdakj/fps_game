@@ -19,6 +19,8 @@ public:
 
   Player(Camera &camera);
 
+  void reset();
+
   void render(Shader &shader, Shader &bounding_box_shader,
               const Light &light) const;
 
@@ -30,6 +32,9 @@ public:
   void set_position(glm::vec3 position);
   void update_position(glm::vec3 delta_position);
 
+  void shot();
+  bool is_dead() const;
+
   const Camera &camera() const { return m_camera; }
 
 private:
@@ -38,6 +43,9 @@ private:
   glm::mat4 m_scaling;
   glm::mat4 m_rotation;
   glm::mat4 m_translation;
+
+  // how many times player can get shot
+  short m_lives;
 };
 
 #endif /* _PLAYER_H_ */

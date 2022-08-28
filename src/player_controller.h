@@ -11,13 +11,7 @@
 class PlayerController : ObjectController, InputController {
 public:
   PlayerController(Player &player, const CollistionDetector &collision_detector,
-                   GLFWwindow *window)
-      : m_player(player), InputController(window),
-        ObjectController(player, collision_detector),
-        m_action_to_animation(
-            {{Player::Action::Shoot, {player, "shoot", Sound::Track::GunShoot}},
-             {Player::Action::Recharge, {player, "CINEMA_4D_Main"}}}),
-        m_todo_action{Player::Action::None} {}
+                   GLFWwindow *window);
 
   // object controller methods
   void update(float current_time) override;
@@ -26,6 +20,8 @@ public:
   void process_inputs() override;
   void process_inputs_keyboard() override;
   void process_inputs_mouse() override;
+
+  void reset();
 
 private:
   void process_keyboard_for_move() const;

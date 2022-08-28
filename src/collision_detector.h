@@ -25,6 +25,11 @@ public:
     m_dynamic_objects = std::move(dynamic_objects);
   }
 
+  void reset() {
+    m_static_objects.clear();
+    m_dynamic_objects.clear();
+  }
+
 private:
   std::optional<glm::vec3>
   collision_vector(const BoundingBox &box,

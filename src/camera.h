@@ -13,6 +13,8 @@ class Camera {
 public:
   Camera(int width, int height, glm::vec3 position);
 
+  void reset(glm::vec3 position);
+
   void update_matrix();
 
   const glm::mat4 &matrix() const { return m_camera_matrix; }
@@ -32,20 +34,20 @@ public:
   BoundingBox get_bounding_box() const;
 
 private:
-  float m_FOV_deg = 45;
-  float m_near_plane = 0.1;
-  float m_far_plane = 40;
+  const float m_FOV_deg = 45;
+  const float m_near_plane = 0.1;
+  const float m_far_plane = 40;
+
+  const int m_width;
+  const int m_height;
+
+  const float m_speed = 0.04f;
+  const float m_sensitivity = 100.0f;
 
   glm::vec3 m_position;
-  glm::vec3 m_orientation = glm::vec3(0.0f, 0.0f, -1.0f);
-  glm::vec3 m_up = glm::vec3(0.0f, 1.0f, 0.0f);
-  glm::mat4 m_camera_matrix = glm::mat4(1.0f);
-
-  int m_width;
-  int m_height;
-
-  float m_speed = 0.04f;
-  float m_sensitivity = 100.0f;
+  glm::vec3 m_orientation;
+  glm::vec3 m_up;
+  glm::mat4 m_camera_matrix;
 };
 
 #endif /* _CAMERA_H_ */

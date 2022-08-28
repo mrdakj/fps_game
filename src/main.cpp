@@ -16,70 +16,17 @@
 #include "level_manager.h"
 #include "light.h"
 #include "map.h"
+#include "menu.h"
 #include "picking_texture.h"
 #include "player.h"
 #include "player_controller.h"
+#include "scene.h"
 #include "shader.h"
 #include "sound.h"
 #include <GLFW/glfw3.h>
 
-const int window_width = 2080;
-const int window_height = 1000;
-
-struct Scene {
-  Scene(GLFWwindow *window)
-      : input_controller{window},
-        level_manager(window, window_width, window_height) {}
-
-  PickingTexture::PixelInfo process_mouse_click() {
-    PickingTexture::PixelInfo pixel;
-    auto [mouse_x, mouse_y] = input_controller.get_mouse_position();
-    pixel = picking_texture.read_pixel(mouse_x, window_height - mouse_y - 1);
-    if (level_manager.is_enemy_shot(pixel.object_id)) {
-      level_manager.set_enemy_shot(pixel.object_id);
-    }
-    return pixel;
-  }
-
-  void update(float current_time) { level_manager.update(current_time); }
-
-  void render() {
-    PickingTexture::PixelInfo pixel;
-    if (input_controller.is_mouse_button_pressed(MouseButton::Left)) {
-      render_to_texture();
-      pixel = process_mouse_click();
-    }
-    render_scene(pixel);
-  }
-
-  void render_scene(const PickingTexture::PixelInfo &pixel) {
-    // clear the back buffer and assign the new color to it
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-#ifdef FPS_DEBUG
-    if (pixel.is_set()) {
-      level_manager.render_primitive(pixel.object_id, pixel.draw_id,
-                                     pixel.primitive_id);
-    }
-#endif
-
-    level_manager.render();
-    cursor.render();
-  }
-
-  void render_to_texture() {
-    picking_texture.enable_writing();
-    // clear the back buffer and assign the new color to it
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    level_manager.render_to_texture();
-    picking_texture.disable_writing();
-  }
-
-  Cursor cursor;
-  InputController input_controller;
-  PickingTexture picking_texture{window_width, window_height};
-  LevelManager level_manager;
-};
+#define WINDOW_WIDTH (2080)
+#define WINDOW_HEIGHT (1000)
 
 int main(void) {
   glfwInit();
@@ -89,7 +36,7 @@ int main(void) {
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
   GLFWwindow *window =
-      glfwCreateWindow(window_width, window_height, "My window", NULL, NULL);
+      glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "FPS Game", NULL, NULL);
 
   if (window == NULL) {
     std::cout << "Failed to create a window." << std::endl;
@@ -99,7 +46,7 @@ int main(void) {
 
   glfwMakeContextCurrent(window);
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-  glfwSetCursorPos(window, window_width / 2, window_height / 2);
+  glfwSetCursorPos(window, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
 
   glfwSwapInterval(1);
 
@@ -108,14 +55,17 @@ int main(void) {
     return -1;
   }
 
-  glViewport(0, 0, window_width, window_height);
+  glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
   // specify the color used during glclear
   glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
   glEnable(GL_DEPTH_TEST);
   glDisable(GL_BLEND);
 
-  Scene scene(window);
+  Scene scene(window, WINDOW_WIDTH, WINDOW_HEIGHT);
+  Menu menu(window, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+  bool game_started = false;
 
   double previous_time = glfwGetTime();
   int frame_count = 0;
@@ -125,14 +75,32 @@ int main(void) {
     frame_count++;
     // if a second has passed.
     if (current_time - previous_time >= 1.0) {
-      std::cout << frame_count << std::endl;
+      // std::cout << frame_count << std::endl;
 
       frame_count = 0;
       previous_time = current_time;
     }
 
-    scene.update(current_time);
-    scene.render();
+    if (game_started) {
+      scene.update(current_time);
+      scene.render();
+    }
+
+    bool game_over = scene.is_game_over();
+    if (!game_started || game_over) {
+      Menu::Result menu_result = menu.update(game_over);
+      if (menu_result == Menu::Result::Exit) {
+        break;
+      } else if (menu_result == Menu::Result::Play) {
+        if (game_started) {
+          scene.reset();
+        } else {
+          game_started = true;
+        }
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+      }
+      menu.render();
+    }
 
     glfwSwapBuffers(window);
     glfwPollEvents();

@@ -25,11 +25,13 @@ const std::string &StateMachine::position_name(Position position) {
 // ---------------------------------------
 
 StateMachine::StateMachine(Enemy &owner)
-    : m_owner(owner),
+    : m_owner(owner), m_is_shot(false), m_is_shooting(false),
+      m_player_seen_time(0),
       m_action_to_animation(
           {{Action::RotateLeft, {owner, "rotate", true, 2.0f, true}},
            {Action::RotateRight, {owner, "rotate", false, 2.0f, true}},
-           {Action::FallDead, {owner, "fall_dead", false, 1.0f}},
+           {Action::FallDead,
+            {owner, "fall_dead", Sound::Track::FallDown, false, 1.0f}},
            {Action::Walk, {owner, "walk", false, 0.8f, false}},
            {Action::Shoot,
             {owner, "shoot", Sound::Track::RifleShoot, false, 2.0f}},
@@ -40,6 +42,32 @@ StateMachine::StateMachine(Enemy &owner)
   m_states.emplace(StateName::Chasing, std::make_unique<Chasing>(*this));
   m_states.emplace(StateName::Patrolling, std::make_unique<Patrolling>(*this));
   m_states.emplace(StateName::Dead, std::make_unique<Dead>(*this));
+
+  // set current state to Patrolling
+  m_current_state = m_states[StateName::Patrolling].get();
+  // set init position to Patrolling start position
+  m_owner.set_bones_position(
+      static_cast<Patrolling *>(m_current_state)->get_start_position());
+
+  // there is no transitioning state at this moment
+  m_transitioning_state = nullptr;
+}
+
+void StateMachine::reset() {
+  // reset enemy state
+  m_is_shot = false;
+  m_is_shooting = false;
+  m_player_seen_time = 0;
+
+  // reset animtions
+  for (auto &action_animation : m_action_to_animation) {
+    action_animation.second.reset();
+  }
+
+  // reset states
+  for (auto &name_state : m_states) {
+    name_state.second->exit();
+  }
 
   // set current state to Patrolling
   m_current_state = m_states[StateName::Patrolling].get();
@@ -345,8 +373,6 @@ void Dead::execute(float delta_time) {
   // nothing to do in dead state
 }
 
-void Dead::exit() { assert(false && "should not exit dead state"); }
-
 void Dead::register_todo_action(StateMachine::Action action) {
   assert(false && "dead state cannot have any action");
 }
@@ -394,6 +420,7 @@ bool Attacking::enter(float delta_time) {
   // if action status is success, enemy should be in this state
   assert(false);
 }
+unsigned int player_shot = 0;
 
 void Attacking::execute(float delta_time) {
   // execute todo actions
@@ -410,6 +437,7 @@ void Attacking::execute(float delta_time) {
           m_owner.get_animation(action_status.first).update(delta_time);
 
       if (finished) {
+        m_owner.m_owner.shoot_player();
         action_status.second = StateMachine::ActionStatus::Success;
       }
     }

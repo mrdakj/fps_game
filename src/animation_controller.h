@@ -24,6 +24,8 @@ struct AnimationController {
 
   void on_animation_stop();
 
+  void reset();
+
 private:
   void reset_animation();
   void update_animation_time(float delta_time);

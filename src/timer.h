@@ -6,6 +6,8 @@ public:
   Timer();
   float tick(float current_time);
 
+  void reset();
+
 private:
   float m_last_update_time;
 };

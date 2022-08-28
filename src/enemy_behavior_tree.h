@@ -12,6 +12,7 @@ class Enemy;
 class IsShot;
 class PlayerVisible;
 class PlayerSeen;
+class PlayerDead;
 class Rotate;
 class Idle;
 class Patrolling;
@@ -26,6 +27,7 @@ class EnemyBT {
   friend class IsShot;
   friend class PlayerVisible;
   friend class PlayerSeen;
+  friend class PlayerDead;
   friend class Rotate;
   friend class Idle;
   friend class Patrolling;
@@ -38,6 +40,7 @@ class EnemyBT {
 
 public:
   EnemyBT(Enemy &enemy);
+  void reset();
   void update();
 
 private:
@@ -84,6 +87,12 @@ public:
 private:
   // how many seconds should player seen last
   unsigned int m_duration_seconds;
+};
+
+class PlayerDead : public EnemyBTNode {
+public:
+  PlayerDead(EnemyBT &bt);
+  NodeState tick() override;
 };
 
 class UnderAim : public EnemyBTNode {

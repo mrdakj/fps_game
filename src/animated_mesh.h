@@ -15,6 +15,8 @@ class AnimatedMesh : public CollisionObject<BoundingBox> {
 public:
   AnimatedMesh(const std::string &file_name);
 
+  void reset();
+
   // return true if animation is finished and return global transformation
   std::pair<bool, glm::mat4> update(const std::string &animation_name,
                                     float time_in_seconds,
@@ -56,8 +58,8 @@ private:
 protected:
   SkinnedMesh m_skinned_mesh;
 
-  glm::mat4 m_user_transformation = glm::mat4(1.0f);
-  glm::mat4 m_global_transformation = glm::mat4(1.0f);
+  glm::mat4 m_user_transformation;
+  glm::mat4 m_global_transformation;
 };
 
 #endif /* _ANIMATED_MESH_H_ */

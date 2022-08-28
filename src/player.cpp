@@ -3,6 +3,7 @@
 #include "animated_mesh.h"
 #include "bounding_box.h"
 #include "camera.h"
+#include "sound.h"
 #include <glm/ext/scalar_constants.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -12,9 +13,21 @@
 
 #include <iostream>
 
+#define LIVES (5)
+
 Player::Player(Camera &camera)
     : AnimatedMesh("../res/models/fps_pistol/fps_pistol.gltf"),
-      m_camera(camera) {
+      m_camera(camera), m_lives(LIVES) {
+  auto [animation_finised, global_transormation] =
+      m_skinned_mesh.get_bones_for_animation("shoot", 0);
+  set_global_transformation(std::move(global_transormation));
+  set_user_scaling();
+  set_user_rotation();
+  set_user_translation();
+}
+
+void Player::reset() {
+  m_lives = LIVES;
   auto [animation_finised, global_transormation] =
       m_skinned_mesh.get_bones_for_animation("shoot", 0);
   set_global_transformation(std::move(global_transormation));
@@ -93,3 +106,10 @@ void Player::set_user_translation() {
 
   AnimatedMesh::set_user_transformation(m_translation * m_rotation * m_scaling);
 }
+
+void Player::shot() {
+  SoundPlayer::instance().play_track(Sound::Track::GruntingHit);
+  --m_lives;
+}
+
+bool Player::is_dead() const { return m_lives <= 0; }

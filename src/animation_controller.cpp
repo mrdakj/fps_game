@@ -69,3 +69,5 @@ void AnimationController::on_animation_stop() {
   }
   reset_animation();
 }
+
+void AnimationController::reset() { on_animation_stop(); }
