@@ -75,7 +75,7 @@ int main(void) {
     frame_count++;
     // if a second has passed.
     if (current_time - previous_time >= 1.0) {
-      // std::cout << frame_count << std::endl;
+      std::cout << frame_count << std::endl;
 
       frame_count = 0;
       previous_time = current_time;

@@ -25,7 +25,7 @@ void Scene::update(float current_time) { m_level_manager.update(current_time); }
 
 void Scene::render() {
   PickingTexture::PixelInfo pixel;
-  if (!is_game_over() &&
+  if (!is_game_over() && m_level_manager.player_shoot_started() &&
       m_input_controller.is_mouse_button_pressed(MouseButton::Left)) {
     render_to_texture();
     pixel = process_mouse_click();
@@ -45,9 +45,6 @@ void Scene::render_scene(const PickingTexture::PixelInfo &pixel) {
 #endif
 
   m_level_manager.render();
-  if (!is_game_over()) {
-    m_cursor.render();
-  }
 }
 
 void Scene::render_to_texture() {

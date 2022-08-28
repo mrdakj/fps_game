@@ -54,6 +54,8 @@ public:
 
   void reset();
 
+  bool player_shoot_started() const;
+
 private:
   // add enemy with the given id to exaclty one room in a map
   void add_enemy_to_room(unsigned int enemy_index);

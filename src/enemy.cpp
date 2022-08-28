@@ -29,8 +29,8 @@ const float Enemy::SCALING_FACTOR = 0.01;
 
 #define UNDER_AIM_THRESHOLD (5)
 
-#define PLAYER_CLOSE_THRESHOLD (15)
-#define PLAYER_VERY_CLOSE_THRESHOLD (3)
+#define PLAYER_CLOSE_THRESHOLD (20)
+#define PLAYER_VERY_CLOSE_THRESHOLD (5)
 
 // threshold when difference between player's and enemy's position is considered
 // as 0

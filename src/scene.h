@@ -27,7 +27,6 @@ private:
 private:
   unsigned int m_window_width;
   unsigned int m_window_height;
-  Cursor m_cursor;
   InputController m_input_controller;
   PickingTexture m_picking_texture;
   LevelManager m_level_manager;

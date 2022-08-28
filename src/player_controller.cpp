@@ -27,12 +27,12 @@ PlayerController::PlayerController(Player &player,
       ObjectController(player, collision_detector),
       m_action_to_animation(
           {{Player::Action::Shoot, {player, "shoot", Sound::Track::GunShoot}},
-           {Player::Action::Recharge, {player, "CINEMA_4D_Main"}}}),
-      m_todo_action{Player::Action::None} {}
+           {Player::Action::Recharge, {player, "recharge"}},
+           {Player::Action::TestAll, {player, "CINEMA_4D_Main"}}}),
+      m_shoot_started(false) {}
 
 void PlayerController::reset() {
-  // reset todo action
-  m_todo_action = Player::Action::None;
+  m_shoot_started = false;
   // reset timer
   m_timer.reset();
   // reset animations
@@ -47,23 +47,26 @@ void PlayerController::update(float current_time) {
     return;
   }
 
-  process_inputs();
-  animation_update(m_timer.tick(current_time));
+  float delta_time = m_timer.tick(current_time);
+  process_inputs(delta_time);
+  animation_update(delta_time);
 }
 
-void PlayerController::process_inputs() {
-  process_inputs_keyboard();
-  process_inputs_mouse();
+void PlayerController::process_inputs(float delta_time) {
+  process_inputs_keyboard(delta_time);
+  process_inputs_mouse(delta_time);
 }
 
-void PlayerController::process_inputs_keyboard() {
+void PlayerController::process_inputs_keyboard(float delta_time) {
   process_keyboard_for_animation();
-  process_keyboard_for_move();
+  process_keyboard_for_move(delta_time);
 }
 
-void PlayerController::process_inputs_mouse() { process_mouse_for_rotation(); }
+void PlayerController::process_inputs_mouse(float delta_time) {
+  process_mouse_for_rotation(delta_time);
+}
 
-void PlayerController::process_keyboard_for_move() const {
+void PlayerController::process_keyboard_for_move(float delta_time) const {
   bool key_pressed = false;
 
   glm::vec3 direction_w(0, 0, 0);
@@ -185,7 +188,7 @@ void PlayerController::process_keyboard_for_move() const {
   play_sound();
 }
 
-void PlayerController::process_mouse_for_rotation() const {
+void PlayerController::process_mouse_for_rotation(float delta_time) const {
   // handle the mouse
   auto [mouse_x, mouse_y] = get_mouse_position();
 
@@ -283,23 +286,36 @@ void PlayerController::process_mouse_for_rotation() const {
 }
 
 void PlayerController::process_keyboard_for_animation() {
+  m_shoot_started = false;
   if (is_key_pressed(GLFW_KEY_P)) {
-    if (m_todo_action == Player::Action::None) {
-      m_todo_action = Player::Action::Recharge;
+    if (m_player.m_todo_action == Player::Action::None) {
+      m_player.m_todo_action = Player::Action::TestAll;
     }
-  } else if (is_mouse_button_pressed(MouseButton::Left)) {
-    if (m_todo_action == Player::Action::None) {
-      m_todo_action = Player::Action::Shoot;
+  } else if (is_key_pressed(GLFW_KEY_R)) {
+    if (m_player.m_todo_action == Player::Action::None) {
+      m_player.m_todo_action = Player::Action::Recharge;
+    }
+  } else if (is_mouse_button_pressed(MouseButton::Left) &&
+             m_player.can_shoot()) {
+    if (m_player.m_todo_action == Player::Action::None) {
+      m_shoot_started = true;
+      m_player.m_todo_action = Player::Action::Shoot;
+      m_player.take_bullet();
     }
   }
 }
 
 void PlayerController::animation_update(float delta_time) {
-  if (m_todo_action != Player::Action::None) {
-    auto animation_it = m_action_to_animation.find(m_todo_action);
+  if (m_player.m_todo_action != Player::Action::None) {
+    auto animation_it = m_action_to_animation.find(m_player.m_todo_action);
     assert(animation_it != m_action_to_animation.end() && "animation found");
     if (animation_it->second.update(delta_time).first) {
-      m_todo_action = Player::Action::None;
+      if (m_player.m_todo_action == Player::Action::Recharge) {
+        m_player.recharge_gun();
+      }
+      m_player.m_todo_action = Player::Action::None;
     }
   }
 }
+
+bool PlayerController::is_shoot_started() const { return m_shoot_started; }

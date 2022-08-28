@@ -14,10 +14,12 @@
 #include <iostream>
 
 #define LIVES (5)
+#define BULLETS (5)
 
 Player::Player(Camera &camera)
     : AnimatedMesh("../res/models/fps_pistol/fps_pistol.gltf"),
-      m_camera(camera), m_lives(LIVES) {
+      m_camera(camera), m_lives(LIVES),
+      m_bullets(BULLETS), m_todo_action{Player::Action::None} {
   auto [animation_finised, global_transormation] =
       m_skinned_mesh.get_bones_for_animation("shoot", 0);
   set_global_transformation(std::move(global_transormation));
@@ -27,7 +29,9 @@ Player::Player(Camera &camera)
 }
 
 void Player::reset() {
+  m_todo_action = Action::None;
   m_lives = LIVES;
+  m_bullets = BULLETS;
   auto [animation_finised, global_transormation] =
       m_skinned_mesh.get_bones_for_animation("shoot", 0);
   set_global_transformation(std::move(global_transormation));
@@ -37,8 +41,12 @@ void Player::reset() {
 }
 
 void Player::render(Shader &shader, Shader &bounding_box_shader,
-                    const Light &light) const {
+                    const Light &light) {
   AnimatedMesh::render(shader, m_camera, light);
+
+  if (m_todo_action == Action::None) {
+    m_cursor.render();
+  }
 
 #ifdef FPS_DEBUG
   // for testing only
@@ -113,3 +121,12 @@ void Player::shot() {
 }
 
 bool Player::is_dead() const { return m_lives <= 0; }
+
+bool Player::can_shoot() const { return m_bullets > 0; }
+
+void Player::take_bullet() {
+  assert(m_bullets > 0 && "player has bullets");
+  --m_bullets;
+}
+
+void Player::recharge_gun() { m_bullets = BULLETS; }

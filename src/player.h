@@ -5,6 +5,7 @@
 #include "bounding_box.h"
 #include "camera.h"
 #include "collision_object.h"
+#include "cursor.h"
 #include "light.h"
 #include "shader.h"
 #include "skinned_mesh.h"
@@ -14,15 +15,16 @@
 #include <string>
 
 class Player : public AnimatedMesh {
+  friend class PlayerController;
+
 public:
-  enum class Action { Shoot, Recharge, None };
+  enum class Action { Shoot, Recharge, TestAll, None };
 
   Player(Camera &camera);
 
   void reset();
 
-  void render(Shader &shader, Shader &bounding_box_shader,
-              const Light &light) const;
+  void render(Shader &shader, Shader &bounding_box_shader, const Light &light);
 
   void set_user_scaling();
   void set_user_rotation();
@@ -35,6 +37,10 @@ public:
   void shot();
   bool is_dead() const;
 
+  bool can_shoot() const;
+  void take_bullet();
+  void recharge_gun();
+
   const Camera &camera() const { return m_camera; }
 
 private:
@@ -46,6 +52,13 @@ private:
 
   // how many times player can get shot
   short m_lives;
+  // how many bullets player has
+  short m_bullets;
+
+  // ongoing action
+  Player::Action m_todo_action;
+
+  Cursor m_cursor;
 };
 
 #endif /* _PLAYER_H_ */

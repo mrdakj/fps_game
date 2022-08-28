@@ -49,5 +49,5 @@ add_library(node node.cpp node.h)
 add_library(timer timer.cpp timer.h)
 add_library(sound sound.cpp sound.h)
 add_executable(main main.cpp)
-target_link_libraries (main menu scene level_manager shader camera map cursor animated_mesh player enemy timer collision_object player_controller enemy_behavior_tree enemy_state_machine collision_detector object_controller input_controller animation_controller skinned_mesh nav_mesh texture stb  material assimp channel light animation node utility bounding_box aabb picking_texture sound imgui_impl_glfw imgui_impl_opengl3 OpenGL::GL glfw GLEW::GLEW imgui)
+target_link_libraries (main menu scene level_manager shader camera map animated_mesh player enemy cursor timer collision_object player_controller enemy_behavior_tree enemy_state_machine collision_detector object_controller input_controller animation_controller skinned_mesh nav_mesh texture stb  material assimp channel light animation node utility bounding_box aabb picking_texture sound imgui_impl_glfw imgui_impl_opengl3 OpenGL::GL glfw GLEW::GLEW imgui)
 

@@ -280,3 +280,7 @@ Path LevelManager::find_enemy_path(unsigned int enemy_id) const {
   return room_nav_mesh.get_path(m_enemies[enemy_id].get_position(),
                                 room_nav_mesh.get_random_point());
 }
+
+bool LevelManager::player_shoot_started() const {
+  return m_player_controller.is_shoot_started();
+}

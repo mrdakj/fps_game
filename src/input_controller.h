@@ -14,9 +14,9 @@ class InputController {
 public:
   InputController(GLFWwindow *window) : m_window(window) {}
 
-  virtual void process_inputs() {}
-  virtual void process_inputs_keyboard() {}
-  virtual void process_inputs_mouse() {}
+  virtual void process_inputs(float delta_time) {}
+  virtual void process_inputs_keyboard(float delta_time) {}
+  virtual void process_inputs_mouse(float delta_time) {}
 
   bool is_key_pressed(unsigned int key) const {
     return glfwGetKey(m_window, key) == GLFW_PRESS;

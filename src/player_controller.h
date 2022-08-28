@@ -17,24 +17,26 @@ public:
   void update(float current_time) override;
 
   // input controller methods
-  void process_inputs() override;
-  void process_inputs_keyboard() override;
-  void process_inputs_mouse() override;
+  void process_inputs(float delta_time) override;
+  void process_inputs_keyboard(float delta_time) override;
+  void process_inputs_mouse(float delta_time) override;
 
   void reset();
 
+  bool is_shoot_started() const;
+
 private:
-  void process_keyboard_for_move() const;
+  void process_keyboard_for_move(float delta_time) const;
   void process_keyboard_for_animation();
 
-  void process_mouse_for_rotation() const;
+  void process_mouse_for_rotation(float delta_time) const;
 
   void animation_update(float delta_time);
 
   Player &m_player;
 
   std::unordered_map<Player::Action, AnimationController> m_action_to_animation;
-  Player::Action m_todo_action;
+  bool m_shoot_started;
 
   Timer m_timer;
 };
