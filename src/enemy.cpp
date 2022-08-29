@@ -19,29 +19,47 @@ const std::string Enemy::FLASH = "flash";
 const glm::vec3 Enemy::FRONT_DIRECTION = glm::vec3(-1, 0, 0);
 // enemy's scale
 const float Enemy::SCALING_FACTOR = 0.01;
+// when player is under domain
+const short Enemy::PLAYER_CLOSE_THRESHOLD = 18;
 // ------------------------------------------------------
 
 // after how many ticks to update behavior tree
 #define AI_REFRESH_INTERVAL (5)
+
+#define SPINE_ROTATION_SPEED (200)
 
 #define SPINE_ANGLE_MIN (-60)
 #define SPINE_ANGLE_MAX (40)
 
 #define UNDER_AIM_THRESHOLD (5)
 
-#define PLAYER_CLOSE_THRESHOLD (20)
-#define PLAYER_VERY_CLOSE_THRESHOLD (5)
+#define PLAYER_VERY_CLOSE_THRESHOLD (10)
 
 // threshold when difference between player's and enemy's position is considered
-// as 0
-#define ZERO_DISTANCE (2)
+// as 0 when shooting
+#define ZERO_DISTANCE_FOR_SHOOTING (5)
 
 #define MAX_SHOT_PROBABILITY (1)
 #define MIN_SHOT_PROBABILITY (0.1)
 
-bool Enemy::is_target_shot(float distance, float max_distance) {
-  distance = std::max(0.0f, distance - ZERO_DISTANCE);
-  assert(distance >= 0 && max_distance >= 0 && "distances valid");
+bool Enemy::is_target_shot(float distance) {
+  // ----------------- probability of target getting shot ----------------------
+  //               min shot probability                max shot probability
+  //       p=0            v       p=linear interpolation         v     p=1
+  // |--------------------|--------------------------------------|--------------|
+  //                     ^                                       ^
+  //           player close threshold                       zero threshold
+
+  assert(distance >= 0 && "distances valid");
+
+  if (distance < ZERO_DISTANCE_FOR_SHOOTING) {
+    // if distance is below some threshold enemy cannot miss it
+    return true;
+  }
+
+  distance = std::max(0.0f, distance - ZERO_DISTANCE_FOR_SHOOTING);
+  int max_distance = PLAYER_CLOSE_THRESHOLD - ZERO_DISTANCE_FOR_SHOOTING;
+
   float p = distance > max_distance
                 ? 0
                 : ((max_distance - distance) / max_distance) *
@@ -307,17 +325,17 @@ void Enemy::render_eye_player_direction(Shader &bounding_box_shader,
 
 bool Enemy::is_player_visible() const {
   // player is visible if the following is true:
-  // - player is not too far
+  // - player is not too far or enemy is in attacking state
   // - [eye, player] segment doesn't intersect any mesh box
   // - player is very close or angle between enemy's looking direction and
   // eye-player direction is less than 90
 
-  if (!is_player_close(PLAYER_CLOSE_THRESHOLD)) {
-    // player is too far
+  if (!is_player_close(PLAYER_CLOSE_THRESHOLD) && !attacking()) {
+    // player is too far and enemy is not in attacking state
     return false;
   }
 
-  // - player is not too far
+  // - player is not too far or enemy is in attacking state
 
   auto [eye_O, eye_player_direction] = get_eye_player_direction();
 
@@ -345,7 +363,7 @@ bool Enemy::is_player_visible() const {
       !m_level_manager.raycasting(eye_O, eye_O + eye_player_direction);
 }
 
-bool Enemy::is_player_close(unsigned int threshold) const {
+bool Enemy::is_player_close(short threshold) const {
   return glm::length2(get_position() - m_level_manager.player_position()) <
          threshold * threshold;
 }
@@ -427,8 +445,9 @@ float Enemy::get_delta_spine_angle(float delta_time) const {
 
   float spine_angle = get_spine_angle();
 
-  float delta_angle =
-      (aim == Enemy::Aiming::Left) ? 100 * delta_time : -100 * delta_time;
+  float delta_angle = (aim == Enemy::Aiming::Left)
+                          ? SPINE_ROTATION_SPEED * delta_time
+                          : -SPINE_ROTATION_SPEED * delta_time;
 
   if (aim == Enemy::Aiming::Left) {
     if (spine_angle + delta_angle > SPINE_ANGLE_MAX) {
@@ -462,7 +481,7 @@ float Enemy::get_player_distance() const {
 
 bool Enemy::is_player_shot() const {
   assert(m_state_machine.in_state(StateMachine::StateName::Attacking));
-  return Enemy::is_target_shot(get_player_distance(), PLAYER_CLOSE_THRESHOLD);
+  return Enemy::is_target_shot(get_player_distance());
 }
 
 void Enemy::shoot_player() {
@@ -476,15 +495,16 @@ bool Enemy::is_player_dead() const { return m_level_manager.is_player_dead(); }
 
 float Enemy::get_aiming_angle() const {
   // cannot get angle if player's position is unknown
-  assert(is_player_seen() && "player was seen at some point");
+  assert(is_player_noticed() && "player was noticed at some point");
   // get angle between gun pipe and [gun_O, player] in XZ plane
   auto [gun_O, gun_direction] = get_gun_direction();
   gun_direction[1] = 0;
 
   // get current player's position if in attacking state, otherwise get the last
-  // seen player's position
-  const auto &player_pos = attacking() ? m_level_manager.player_position()
-                                       : m_state_machine.m_player_seen_position;
+  // noticed player's position
+  const auto &player_pos = attacking()
+                               ? m_level_manager.player_position()
+                               : m_state_machine.m_player_noticed_position;
 
   auto gun_player_direction = player_pos - gun_O;
   gun_player_direction[1] = 0;
@@ -550,19 +570,19 @@ void Enemy::set_shot() {
 
 bool Enemy::is_shot() const { return m_state_machine.m_is_shot; }
 
-void Enemy::set_player_seen() {
-  m_state_machine.m_player_seen_time = std::time(nullptr);
-  m_state_machine.m_player_seen_position = m_level_manager.player_position();
+void Enemy::set_player_noticed() {
+  m_state_machine.m_player_noticed_time = std::time(nullptr);
+  m_state_machine.m_player_noticed_position = m_level_manager.player_position();
 }
 
-bool Enemy::is_player_seen() const {
-  return m_state_machine.m_player_seen_time != 0;
+bool Enemy::is_player_noticed() const {
+  return m_state_machine.m_player_noticed_time != 0;
 }
 
-unsigned int Enemy::player_seen_seconds_passed() const {
-  assert(m_state_machine.m_player_seen_time != 0 &&
-         "player was seen at some point");
-  return std::time(nullptr) - m_state_machine.m_player_seen_time;
+unsigned int Enemy::player_noticed_seconds_passed() const {
+  assert(m_state_machine.m_player_noticed_time != 0 &&
+         "player was noticed at some point");
+  return std::time(nullptr) - m_state_machine.m_player_noticed_time;
 }
 
 bool Enemy::change_state(StateMachine::StateName state_name) {

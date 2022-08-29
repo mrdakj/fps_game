@@ -1,8 +1,11 @@
 #include "menu.h"
+#include <imgui.h>
+#include <imgui_internal.h>
 
 Menu::Menu(GLFWwindow *window, unsigned int window_width,
            unsigned int window_height)
-    : m_width(window_width), m_height(window_height) {
+    : m_width(window_width),
+      m_height(window_height), m_state{GameState::NotStarted, 0, 0} {
   ImGui::CreateContext();
 
   ImGui::StyleColorsDark();
@@ -20,23 +23,21 @@ Menu::Menu(GLFWwindow *window, unsigned int window_width,
   ImGui::GetStyle().ScaleAllSizes(dpi_scale);
 }
 
-Menu::Result Menu::update(bool game_over) const {
+Menu::Result Menu::draw_menu() const {
+  assert(m_state.game_state != GameState::Running && "game not running");
+
   Menu::Result result = Menu::Result::None;
 
-  ImGui_ImplOpenGL3_NewFrame();
-  ImGui_ImplGlfw_NewFrame();
-  ImGui::NewFrame();
-
-  auto font_size = ImGui::GetFontSize();
+  int font_size = ImGui::GetFontSize();
   ImGui::SetNextWindowSize(ImVec2(20 * font_size, 20 * font_size));
   ImGui::SetNextWindowPos(ImVec2(m_width * 0.5f, m_height * 0.5f),
                           ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 
   ImGui::Begin("FPS Game");
   spacing(0, 20);
-  text_aligned(game_over ? "GAME OVER" : "WELCOME");
+  text_aligned(m_state.game_state == GameState::Over ? "GAME OVER" : "WELCOME");
   spacing(0, 20);
-  float buttons_width = std::max(label_size("play"), label_size("exit"));
+  float buttons_width = std::max(button_size("play"), button_size("exit"));
   if (button_aligned("play", buttons_width)) {
     result = Menu::Result::Play;
   }
@@ -48,20 +49,56 @@ Menu::Result Menu::update(bool game_over) const {
   return result;
 }
 
+void Menu::draw_text() const {
+  // hide cursor because game is running
+  ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+  ImGui::GetForegroundDrawList()->AddText(
+      ImVec2(0, 0), ImGui::ColorConvertFloat4ToU32({1, 1, 1, 1}),
+      ("lives: " + std::to_string(m_state.lives) +
+       "  bullets: " + std::to_string(m_state.bullets) +
+       "  frame rate: " + std::to_string(m_state.frame_rate))
+          .c_str());
+}
+
+Menu::Result Menu::update(State state) {
+  m_state = std::move(state);
+  Menu::Result result = Menu::Result::None;
+
+  ImGui_ImplOpenGL3_NewFrame();
+  ImGui_ImplGlfw_NewFrame();
+  ImGui::NewFrame();
+
+  switch (m_state.game_state) {
+  case GameState::NotStarted:
+  case GameState::Over: {
+    result = draw_menu();
+    break;
+  }
+  case GameState::Running: {
+    draw_text();
+    break;
+  }
+  default:
+    assert(false && "unknown game state");
+  }
+
+  return result;
+}
+
 void Menu::spacing(float space_x, float space_y) const {
   ImGui::Dummy(ImVec2(space_x, space_y));
 }
 
 float Menu::label_size(const char *label) const {
-  ImGuiStyle &style = ImGui::GetStyle();
-  return ImGui::CalcTextSize(label).x + style.FramePadding.x * 2.0f;
+  return ImGui::CalcTextSize(label).x;
+}
+
+float Menu::button_size(const char *label) const {
+  return ImGui::CalcTextSize(label).x + ImGui::GetStyle().FramePadding.x * 2.0f;
 }
 
 void Menu::align(const char *label, float element_size) const {
-  float avail = ImGui::GetContentRegionAvail().x;
-  float alignment = 0.5f;
-
-  float off = (avail - element_size) * alignment;
+  float off = (ImGui::GetContentRegionAvail().x - element_size) * 0.5;
   if (off > 0.0f) {
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + off);
   }
@@ -73,7 +110,7 @@ void Menu::text_aligned(const char *label) const {
 }
 
 bool Menu::button_aligned(const char *label) const {
-  align(label, label_size(label));
+  align(label, button_size(label));
   return ImGui::Button(label);
 }
 

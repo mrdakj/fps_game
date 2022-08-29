@@ -26,10 +26,10 @@ const std::string &StateMachine::position_name(Position position) {
 
 StateMachine::StateMachine(Enemy &owner)
     : m_owner(owner), m_is_shot(false), m_is_shooting(false),
-      m_player_seen_time(0),
+      m_player_noticed_time(0),
       m_action_to_animation(
-          {{Action::RotateLeft, {owner, "rotate", true, 2.0f, true}},
-           {Action::RotateRight, {owner, "rotate", false, 2.0f, true}},
+          {{Action::RotateLeft, {owner, "rotate", true, 2.5f, true}},
+           {Action::RotateRight, {owner, "rotate", false, 2.5f, true}},
            {Action::FallDead,
             {owner, "fall_dead", Sound::Track::FallDown, false, 1.0f}},
            {Action::Walk, {owner, "walk", false, 0.8f, false}},
@@ -57,7 +57,7 @@ void StateMachine::reset() {
   // reset enemy state
   m_is_shot = false;
   m_is_shooting = false;
-  m_player_seen_time = 0;
+  m_player_noticed_time = 0;
 
   // reset animtions
   for (auto &action_animation : m_action_to_animation) {
@@ -316,6 +316,39 @@ void Alive::do_rotate_action(
   }
 }
 
+bool Alive::go_to_attacking_position(float delta_time) {
+  // make sure enemy is transitioning to this state
+  assert(!m_owner.m_current_state && m_owner.m_transitioning_state &&
+         m_owner.m_transitioning_state->name() == m_state_name &&
+         "enemy transitioning valid");
+
+  if (m_entering_action.second == StateMachine::ActionStatus::Created) {
+    // create "transition" animation from current position to the start position
+    // - Attacking
+    m_owner.create_transition_to_position_animation(
+        m_start_position, TRANSITION_TO_ATTACKING_POSITION);
+    m_entering_action.second = StateMachine::ActionStatus::Running;
+  }
+
+  if (m_entering_action.second == StateMachine::ActionStatus::Running) {
+    // update transitioning animation
+    auto [finished, global_transformation] =
+        m_owner.get_animation(m_entering_action.first).update(delta_time);
+
+    // rotate spine bone manually in order to follow the moving target
+    m_owner.m_owner.rotate_spine(delta_time);
+
+    if (finished) {
+      // entering done
+      m_entering_action.second = StateMachine::ActionStatus::Success;
+    }
+
+    return finished;
+  }
+
+  assert(false);
+}
+
 // ---------------- Dead State ----------------------------------
 Dead::Dead(StateMachine &owner)
     : EnemyState(owner, StateMachine::StateName::Dead,
@@ -388,37 +421,7 @@ bool Attacking::enter(float delta_time) {
     return true;
   }
 
-  // make sure enemy is transitioning to this state
-  assert(!m_owner.m_current_state && m_owner.m_transitioning_state &&
-         m_owner.m_transitioning_state->name() == m_state_name &&
-         "enemy transitioning valid");
-
-  if (m_entering_action.second == StateMachine::ActionStatus::Created) {
-    // create "transition" animation from current position to the start position
-    // - Attacking
-    m_owner.create_transition_to_position_animation(
-        m_start_position, TRANSITION_TO_ATTACKING_POSITION);
-    m_entering_action.second = StateMachine::ActionStatus::Running;
-  }
-
-  if (m_entering_action.second == StateMachine::ActionStatus::Running) {
-    // update transitioning animation
-    auto [finished, global_transformation] =
-        m_owner.get_animation(m_entering_action.first).update(delta_time);
-
-    // rotate spine bone manually in order to follow the moving target
-    m_owner.m_owner.rotate_spine(delta_time);
-
-    if (finished) {
-      // entering done
-      m_entering_action.second = StateMachine::ActionStatus::Success;
-    }
-
-    return finished;
-  }
-
-  // if action status is success, enemy should be in this state
-  assert(false);
+  return Alive::go_to_attacking_position(delta_time);
 }
 unsigned int player_shot = 0;
 
@@ -466,7 +469,14 @@ Chasing::Chasing(StateMachine &owner)
     : Alive(owner, StateMachine::StateName::Chasing,
             StateMachine::Position::Attacking) {}
 
-bool Chasing::enter(float delta_time) { return true; }
+bool Chasing::enter(float delta_time) {
+  if (m_owner.in_state(m_state_name)) {
+    // already in this state
+    return true;
+  }
+
+  return Alive::go_to_attacking_position(delta_time);
+}
 
 void Chasing::execute(float delta_time) {
   for (auto &action_status : m_todo_actions) {

@@ -12,6 +12,7 @@
 #include "cursor.h"
 #include "enemy.h"
 #include "enemy_behavior_tree.h"
+#include "game.h"
 #include "input_controller.h"
 #include "level_manager.h"
 #include "light.h"
@@ -20,7 +21,6 @@
 #include "picking_texture.h"
 #include "player.h"
 #include "player_controller.h"
-#include "scene.h"
 #include "shader.h"
 #include "sound.h"
 #include <GLFW/glfw3.h>
@@ -62,45 +62,11 @@ int main(void) {
   glEnable(GL_DEPTH_TEST);
   glDisable(GL_BLEND);
 
-  Scene scene(window, WINDOW_WIDTH, WINDOW_HEIGHT);
-  Menu menu(window, WINDOW_WIDTH, WINDOW_HEIGHT);
+  Game game(window, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-  bool game_started = false;
-
-  double previous_time = glfwGetTime();
-  int frame_count = 0;
-
-  while (!glfwWindowShouldClose(window)) {
-    double current_time = glfwGetTime();
-    frame_count++;
-    // if a second has passed.
-    if (current_time - previous_time >= 1.0) {
-      std::cout << frame_count << std::endl;
-
-      frame_count = 0;
-      previous_time = current_time;
-    }
-
-    if (game_started) {
-      scene.update(current_time);
-      scene.render();
-    }
-
-    bool game_over = scene.is_game_over();
-    if (!game_started || game_over) {
-      Menu::Result menu_result = menu.update(game_over);
-      if (menu_result == Menu::Result::Exit) {
-        break;
-      } else if (menu_result == Menu::Result::Play) {
-        if (game_started) {
-          scene.reset();
-        } else {
-          game_started = true;
-        }
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-      }
-      menu.render();
-    }
+  while (!glfwWindowShouldClose(window) && !game.exit()) {
+    game.update(glfwGetTime());
+    game.render();
 
     glfwSwapBuffers(window);
     glfwPollEvents();

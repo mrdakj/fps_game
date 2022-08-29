@@ -1,10 +1,11 @@
 #include "level_manager.h"
 
 const std::vector<glm::vec3> enemies_init_positions = {
-    glm::vec3(2, 0.1, -2), glm::vec3(-2, 0.1, -2), glm::vec3(-5, 0.1, -23),
-    glm::vec3(13, 0.1, -32), glm::vec3(-20, 0.1, -33)};
+    glm::vec3(2, 0.1, -2),   glm::vec3(-2, 0.1, -2),   glm::vec3(-5, 0.1, -23),
+    glm::vec3(13, 0.1, -32), glm::vec3(-20, 0.1, -33), glm::vec3(5, 0.1, -43),
+    glm::vec3(-8, 0.1, -40)};
 
-const glm::vec3 camera_init_position(10, 1.6, -32);
+const glm::vec3 camera_init_position(6, 1.6, 15);
 
 LevelManager::LevelManager(GLFWwindow *window, unsigned int window_width,
                            unsigned int window_height)
@@ -27,6 +28,13 @@ LevelManager::LevelManager(GLFWwindow *window, unsigned int window_width,
     assert(m_enemies[i].id() == i && "id valid");
     add_enemy_to_room(i);
   }
+
+  // update active rooms, camera matrix and do culling so start image can be
+  // displayed before update is called
+  update_active_rooms();
+  // always update cammera matrix before culling
+  m_camera.update_matrix();
+  culling();
 }
 
 void LevelManager::reset() {
@@ -252,12 +260,33 @@ const glm::vec3 &LevelManager::player_position() const {
   return m_player.camera().position();
 }
 
+void LevelManager::notify_enemies() {
+  // notify enemies in active room about player's position if player is shooting
+  // so they can go to chasing state
+  if (!m_player_controller.is_shoot_started()) {
+    // player is not shooting
+    return;
+  }
+
+  // player is shooting
+
+  for (auto &active_room : m_active_rooms) {
+    auto &enemies_in_room = m_room_to_enemies[active_room];
+    for (auto &enemy_in_room_id : enemies_in_room) {
+      // inform enemy in the room wehe player is about player's position
+      m_enemies[enemy_in_room_id].set_player_noticed();
+    }
+  }
+}
+
 void LevelManager::update(float current_time) {
   // std::cout << m_player.camera().position()[0] << ","
   //           << m_player.camera().position()[2] << std::endl;
   update_active_rooms();
   update_collision_detector();
   m_player_controller.update(current_time);
+
+  notify_enemies();
 
   for (unsigned int i = 0; i < m_enemies.size(); ++i) {
     m_enemies[i].update(current_time);
@@ -284,3 +313,6 @@ Path LevelManager::find_enemy_path(unsigned int enemy_id) const {
 bool LevelManager::player_shoot_started() const {
   return m_player_controller.is_shoot_started();
 }
+
+short LevelManager::player_lives() const { return m_player.lives(); }
+short LevelManager::player_bullets() const { return m_player.bullets(); }

@@ -41,8 +41,8 @@ private:
   const int m_width;
   const int m_height;
 
-  const float m_speed = 0.04f;
-  const float m_sensitivity = 100.0f;
+  const float m_speed = 3.5f;
+  const float m_sensitivity = 60.0f;
 
   glm::vec3 m_position;
   glm::vec3 m_orientation;

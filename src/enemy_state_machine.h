@@ -148,8 +148,8 @@ private:
   // ------------- enemy state ------------
   bool m_is_shot;
   bool m_is_shooting;
-  std::time_t m_player_seen_time;
-  glm::vec3 m_player_seen_position;
+  std::time_t m_player_noticed_time;
+  glm::vec3 m_player_noticed_position;
   // --------------------------------------
 
   Enemy &m_owner;
@@ -205,6 +205,8 @@ protected:
   void do_rotate_action(std::pair<const StateMachine::Action,
                                   StateMachine::ActionStatus> &action_status,
                         float delta_time);
+
+  bool go_to_attacking_position(float delta_time);
 
   StateMachine::Position m_start_position;
 };

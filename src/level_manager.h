@@ -49,12 +49,18 @@ public:
   // return true if a segment AB intersects some mesh bounding box
   bool raycasting(const glm::vec3 &A, const glm::vec3 &B) const;
 
+  // notify enemies in active room about player's position if player is shooting
+  void notify_enemies();
+
   // update the state
   void update(float current_time);
 
   void reset();
 
   bool player_shoot_started() const;
+
+  short player_lives() const;
+  short player_bullets() const;
 
 private:
   // add enemy with the given id to exaclty one room in a map
@@ -96,7 +102,7 @@ public:
   PlayerController m_player_controller;
 
   std::vector<Enemy> m_enemies;
-  // enemies that are in active rooms
+  // enemies that shoud be rendered
   std::vector<unsigned int> m_enemies_to_render;
 
   // objects used for rendering

@@ -39,6 +39,8 @@ private:
   bool m_shoot_started;
 
   Timer m_timer;
+
+  bool m_mouse_pressed;
 };
 
 #endif /* _PLAYER_CONTROLLER_H_ */

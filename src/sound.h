@@ -11,7 +11,15 @@
 
 class Sound {
 public:
-  enum class Track { GunShoot, RifleShoot, Running, FallDown, GruntingHit };
+  enum class Track {
+    GunShoot,
+    GunReload,
+    GunTriggerClick,
+    RifleShoot,
+    Running,
+    FallDown,
+    GruntingHit
+  };
 
   static Sound &instance();
 

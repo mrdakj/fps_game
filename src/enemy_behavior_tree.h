@@ -11,8 +11,9 @@ class Enemy;
 
 class IsShot;
 class PlayerVisible;
-class PlayerSeen;
+class PlayerNoticed;
 class PlayerDead;
+class PlayerUnderDomain;
 class Rotate;
 class Idle;
 class Patrolling;
@@ -26,8 +27,9 @@ class Shoot;
 class EnemyBT {
   friend class IsShot;
   friend class PlayerVisible;
-  friend class PlayerSeen;
+  friend class PlayerNoticed;
   friend class PlayerDead;
+  friend class PlayerUnderDomain;
   friend class Rotate;
   friend class Idle;
   friend class Patrolling;
@@ -79,19 +81,25 @@ public:
   NodeState tick() override;
 };
 
-class PlayerSeen : public EnemyBTNode {
+class PlayerNoticed : public EnemyBTNode {
 public:
-  PlayerSeen(EnemyBT &bt, unsigned int duration_seconds);
+  PlayerNoticed(EnemyBT &bt, unsigned int duration_seconds);
   NodeState tick() override;
 
 private:
-  // how many seconds should player seen last
+  // how many seconds should player noticed last
   unsigned int m_duration_seconds;
 };
 
 class PlayerDead : public EnemyBTNode {
 public:
   PlayerDead(EnemyBT &bt);
+  NodeState tick() override;
+};
+
+class PlayerUnderDomain : public EnemyBTNode {
+public:
+  PlayerUnderDomain(EnemyBT &bt);
   NodeState tick() override;
 };
 

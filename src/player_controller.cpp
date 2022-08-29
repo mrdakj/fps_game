@@ -27,12 +27,14 @@ PlayerController::PlayerController(Player &player,
       ObjectController(player, collision_detector),
       m_action_to_animation(
           {{Player::Action::Shoot, {player, "shoot", Sound::Track::GunShoot}},
-           {Player::Action::Recharge, {player, "recharge"}},
+           {Player::Action::Reload,
+            {player, "recharge", Sound::Track::GunReload}},
            {Player::Action::TestAll, {player, "CINEMA_4D_Main"}}}),
-      m_shoot_started(false) {}
+      m_shoot_started(false), m_mouse_pressed(false) {}
 
 void PlayerController::reset() {
   m_shoot_started = false;
+  m_mouse_pressed = false;
   // reset timer
   m_timer.reset();
   // reset animations
@@ -165,7 +167,7 @@ void PlayerController::process_keyboard_for_move(float delta_time) const {
 
   // handle the keyboard x direction
   m_player.update_position(
-      m_player.camera().speed() *
+      m_player.camera().speed() * delta_time *
       glm::vec3(direction_w.x + direction_a.x + direction_s.x + direction_d.x,
                 0, 0));
 
@@ -177,7 +179,7 @@ void PlayerController::process_keyboard_for_move(float delta_time) const {
 
   // handle the keyboard z direction
   m_player.update_position(
-      m_player.camera().speed() *
+      m_player.camera().speed() * delta_time *
       glm::vec3(0, 0,
                 direction_w.z + direction_a.z + direction_s.z + direction_d.z));
 
@@ -192,12 +194,24 @@ void PlayerController::process_mouse_for_rotation(float delta_time) const {
   // handle the mouse
   auto [mouse_x, mouse_y] = get_mouse_position();
 
-  float rotX = m_player.camera().sensitivity() *
-               (float)(mouse_y - (m_player.camera().height() / 2)) /
-               m_player.camera().height();
-  float rotY = m_player.camera().sensitivity() *
-               (float)(mouse_x - (m_player.camera().width() / 2)) /
-               m_player.camera().width();
+  int half_window_height = m_player.camera().height() / 2;
+  // how many pixels we moved from the screen center
+  int delta_pixels_y = mouse_y - half_window_height;
+  // how many percent we moved from the screen center (sign tells direction)
+  float delta_percentage_y = static_cast<float>(100 * delta_pixels_y) /
+                             static_cast<float>(half_window_height);
+
+  int half_window_width = m_player.camera().width() / 2;
+  // how many pixels we moved from the screen center
+  int delta_pixels_x = mouse_x - half_window_width;
+  // how many percent we moved from the screen center (sign tells direction)
+  float delta_percentage_x = static_cast<float>(100 * delta_pixels_x) /
+                             static_cast<float>(half_window_width);
+
+  float rotX =
+      m_player.camera().sensitivity() * delta_time * delta_percentage_y;
+  float rotY =
+      m_player.camera().sensitivity() * delta_time * delta_percentage_x;
 
   // restring horizontal rotation to avoid moving outside the wall wehn
   // resolving collision
@@ -287,22 +301,26 @@ void PlayerController::process_mouse_for_rotation(float delta_time) const {
 
 void PlayerController::process_keyboard_for_animation() {
   m_shoot_started = false;
-  if (is_key_pressed(GLFW_KEY_P)) {
-    if (m_player.m_todo_action == Player::Action::None) {
+  bool mouse_pressed_now = is_mouse_button_pressed(MouseButton::Left);
+
+  if (m_player.m_todo_action == Player::Action::None) {
+    if (is_key_pressed(GLFW_KEY_P)) {
       m_player.m_todo_action = Player::Action::TestAll;
-    }
-  } else if (is_key_pressed(GLFW_KEY_R)) {
-    if (m_player.m_todo_action == Player::Action::None) {
-      m_player.m_todo_action = Player::Action::Recharge;
-    }
-  } else if (is_mouse_button_pressed(MouseButton::Left) &&
-             m_player.can_shoot()) {
-    if (m_player.m_todo_action == Player::Action::None) {
-      m_shoot_started = true;
-      m_player.m_todo_action = Player::Action::Shoot;
-      m_player.take_bullet();
+    } else if (is_key_pressed(GLFW_KEY_R)) {
+      m_player.m_todo_action = Player::Action::Reload;
+    } else if (mouse_pressed_now && !m_mouse_pressed) {
+      if (m_player.can_shoot()) {
+        m_shoot_started = true;
+        m_player.m_todo_action = Player::Action::Shoot;
+        m_player.take_bullet();
+      } else {
+        // don't have bullets
+        SoundPlayer::instance().play_track(Sound::Track::GunTriggerClick);
+      }
     }
   }
+
+  m_mouse_pressed = mouse_pressed_now;
 }
 
 void PlayerController::animation_update(float delta_time) {
@@ -310,7 +328,7 @@ void PlayerController::animation_update(float delta_time) {
     auto animation_it = m_action_to_animation.find(m_player.m_todo_action);
     assert(animation_it != m_action_to_animation.end() && "animation found");
     if (animation_it->second.update(delta_time).first) {
-      if (m_player.m_todo_action == Player::Action::Recharge) {
+      if (m_player.m_todo_action == Player::Action::Reload) {
         m_player.recharge_gun();
       }
       m_player.m_todo_action = Player::Action::None;

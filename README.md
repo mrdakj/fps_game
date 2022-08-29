@@ -19,7 +19,7 @@ Project is still work in progress. It is an example of fps game. Goal is to impl
 
 ## :package: Installation
 
-:exclamation: Requirements: C++17, cmake, OpenGL, glew, glfw, glm, stb, assimp
+:exclamation: Requirements: C++17, cmake, OpenGL, glew, glfw, glm, stb, assimp, imgui
 
 To install glew:
 
@@ -76,6 +76,8 @@ Run:
 ## Sound
 
 [Sound](https://www.fesliyanstudios.com/sound-effects-search.php?q=)
+
+[Sound](https://www.soundjay.com/gun-sound-effect.html)
 
 ## Font
 

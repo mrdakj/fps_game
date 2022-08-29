@@ -95,14 +95,20 @@ public:
   void stop_shooting();
   void start_shooting();
 
-  void set_player_seen();
-  bool is_player_seen() const;
-  // how many seconds passed since the last time player was seen
-  unsigned int player_seen_seconds_passed() const;
+  // player is noticed when he is seen or heard shooting
+  // save player's position and current time
+  void set_player_noticed();
+  // check if player was ever noticed
+  bool is_player_noticed() const;
+  // how many seconds passed since the last time player was noticed
+  unsigned int player_noticed_seconds_passed() const;
   // ------------------------------------------------------------------
 
   // return true if player is visible
   bool is_player_visible() const;
+
+  // return true if player is close
+  bool is_player_close(short threshold) const;
 
   // return UnderAim, Left or Right depending on gun-player angle
   Aiming get_aim() const;
@@ -144,9 +150,6 @@ private:
   // return true if in attacking state or transitioning to attacking state
   bool attacking() const;
 
-  // return true if player is close
-  bool is_player_close(unsigned int threshold) const;
-
   float get_player_distance() const;
 
   bool is_player_shot() const;
@@ -155,7 +158,7 @@ private:
   // ----------------------------------------------------------------
 
 public:
-  static bool is_target_shot(float distance, float max_distance);
+  static bool is_target_shot(float distance);
 
   // ---------------- static vars -------------------
   static const std::string LEFT_EYE_BONE;
@@ -164,6 +167,7 @@ public:
   static const glm::vec3 FRONT_DIRECTION;
   static const float SCALING_FACTOR;
   static const std::string FLASH;
+  static const short PLAYER_CLOSE_THRESHOLD;
   // -----------------------------------------------
 
   // ---------------- member vars -----------------------

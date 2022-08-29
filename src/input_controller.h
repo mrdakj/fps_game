@@ -28,6 +28,12 @@ public:
                              button)) == GLFW_PRESS;
   }
 
+  bool is_mouse_button_released(MouseButton button) const {
+    return glfwGetMouseButton(
+               m_window, static_cast<std::underlying_type<MouseButton>::type>(
+                             button)) == GLFW_RELEASE;
+  }
+
   std::pair<double, double> get_mouse_position() const {
     double mouse_x;
     double mouse_y;

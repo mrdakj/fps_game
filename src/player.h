@@ -18,7 +18,7 @@ class Player : public AnimatedMesh {
   friend class PlayerController;
 
 public:
-  enum class Action { Shoot, Recharge, TestAll, None };
+  enum class Action { Shoot, Reload, TestAll, None };
 
   Player(Camera &camera);
 
@@ -40,6 +40,9 @@ public:
   bool can_shoot() const;
   void take_bullet();
   void recharge_gun();
+
+  short lives() const { return m_lives; }
+  short bullets() const { return m_bullets; }
 
   const Camera &camera() const { return m_camera; }
 

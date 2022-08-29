@@ -5,16 +5,20 @@
 #include <vector>
 
 #define GUN_FILE ("../res/sound/gun.mp3")
+#define GUN_RELOAD_FILE ("../res/sound/gun_reload.mp3")
+#define GUN_TRIGGER_CLICK_FILE ("../res/sound/gun_trigger_click.mp3")
 #define RIFLE_FILE ("../res/sound/rifle.mp3")
 #define RUNNING_FILE ("../res/sound/running.mp3")
 #define FALL_DOWN_FILE ("../res/sound/fall_down.mp3")
 #define GRUNTING_HIT_FILE ("../res/sound/grunting_hit.mp3")
 
 #define GUN_DURATION_MS (300)
+#define GUN_RELOAD_MS (1300)
+#define GUN_TRIGGER_CLICK_MS (100)
 #define RIFLE_DURATION_MS (300)
 #define RUNNING_DURATION_MS (16000)
 #define FALL_DOWN_DURATION_MS (1500)
-#define GRUNTING_HIT_MS (500)
+#define GRUNTING_HIT_MS (300)
 
 inline long get_time_now_ms() {
   return std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -58,6 +62,9 @@ Sound::Sound() {
   m_vlc_engine = libvlc_new(0, NULL);
 
   add_track(Track::GunShoot, GUN_FILE, GUN_DURATION_MS);
+  add_track(Track::GunReload, GUN_RELOAD_FILE, GUN_RELOAD_MS);
+  add_track(Track::GunTriggerClick, GUN_TRIGGER_CLICK_FILE,
+            GUN_TRIGGER_CLICK_MS);
   add_track(Track::RifleShoot, RIFLE_FILE, RIFLE_DURATION_MS);
   add_track(Track::Running, RUNNING_FILE, RUNNING_DURATION_MS);
   add_track(Track::FallDown, FALL_DOWN_FILE, FALL_DOWN_DURATION_MS);
