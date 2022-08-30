@@ -1,10 +1,6 @@
 # FPS Game
 
-![](images/1.png)
-
-![](images/2.png)
-
-![](images/3.png)
+[![Watch the video](images/1.png)](https://youtu.be/mdtpY8iGTUs)
 
 ## Description
 
