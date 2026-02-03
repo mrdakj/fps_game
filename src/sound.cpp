@@ -3,6 +3,7 @@
 #include <chrono>
 #include <thread>
 #include <vector>
+#include <string>
 
 #define GUN_FILE ("../res/sound/gun.mp3")
 #define GUN_RELOAD_FILE ("../res/sound/gun_reload.mp3")

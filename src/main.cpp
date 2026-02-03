@@ -50,10 +50,15 @@ int main(void) {
 
   glfwSwapInterval(1);
 
-  if (glewInit() != GLEW_OK) {
-    std::cout << "error initializing glew" << std::endl;
-    return -1;
-  }
+// Pre glewInit() dodaj:
+glewExperimental = GL_TRUE;
+GLenum err = glewInit();
+if (err != GLEW_OK) {
+    // Ako i sa glewExperimental prijavi error, ispiši tačno koji je
+    std::cout << "GLEW Error: " << glewGetErrorString(err) << std::endl;
+    // Privremeno zakomentariši 'return -1;' da vidiš da li će igra ipak krenuti
+}
+
 
   glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 

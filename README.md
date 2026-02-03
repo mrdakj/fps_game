@@ -38,12 +38,22 @@ pacman -S glm
 
 ```
 
+To install assimp:
+
+```sh
+pacman -S assimp
+
+```
+
+
 To install stb from AUR (single-file public domain (or MIT licensed) libraries for C/C++):
 
 ```sh
 yay -S stb
 
 ```
+
+Imgui in src/vendor is taken from: https://github.com/ocornut/imgui
 
 
 ## Usage

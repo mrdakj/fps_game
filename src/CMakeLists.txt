@@ -1,20 +1,37 @@
+# 1. Standardni paketi
 find_package(OpenGL REQUIRED)
-include_directories(${OPENGL_INCLUDE_DIRS})
-
 find_package(GLEW REQUIRED)
-include_directories(${GLEW_INCLUDE_DIRS})
-
 find_package(glfw3 REQUIRED)
 find_package(assimp REQUIRED)
-find_package(imgui REQUIRED)
 
+# 2. DEFINICIJE - Dodajemo BEFORE da nateramo kompajler da prvo gleda tvoj vendor folder
+# Ovo rešava problem sa /usr/include/imgui.h
+include_directories(BEFORE "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui")
+include_directories(BEFORE "${CMAKE_CURRENT_SOURCE_DIR}/vendor/imgui/backends")
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb_image")
+
+add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
+
+# 3. IMGUI BIBLIOTEKA - Moraš uključiti sve ove .cpp fajlove!
+add_library(imgui STATIC
+    vendor/imgui/imgui.cpp
+    vendor/imgui/imgui_draw.cpp
+    vendor/imgui/imgui_widgets.cpp
+    vendor/imgui/imgui_tables.cpp
+    vendor/imgui/imgui_demo.cpp
+)
+
+# 4. BACKENDS
+add_library(imgui_impl_glfw STATIC vendor/imgui/backends/imgui_impl_glfw.cpp)
+add_library(imgui_impl_opengl3 STATIC vendor/imgui/backends/imgui_impl_opengl3.cpp)
+
+# 5. OSTALE BIBLIOTEKE (Tvoj originalni kod)
 set(ENABLE_BOOST_WORKAROUND ON)
 set(BUILD_STATIC_LIB ON)
-set(BUILD_ASSIMP_TOOLS  ON)
+set(BUILD_ASSIMP_TOOLS ON)
 set(ASSIMP_BUILD_STATIC_LIB ON)
 
-add_library(imgui_impl_glfw vendor/imgui/imgui_impl_glfw.cpp vendor/imgui/imgui_impl_glfw.h)
-add_library(imgui_impl_opengl3 vendor/imgui/imgui_impl_opengl3.cpp vendor/imgui/imgui_impl_opengl3.h)
 add_library(menu menu.cpp menu.h)
 add_library(game game.cpp game.h)
 add_library(shader shader.cpp shader.h)
@@ -48,6 +65,19 @@ add_library(level_manager level_manager.cpp level_manager.h)
 add_library(node node.cpp node.h)
 add_library(timer timer.cpp timer.h)
 add_library(sound sound.cpp sound.h)
-add_executable(main main.cpp)
-target_link_libraries (main menu game level_manager shader camera map animated_mesh player enemy cursor timer collision_object player_controller enemy_behavior_tree enemy_state_machine collision_detector object_controller input_controller animation_controller skinned_mesh nav_mesh texture stb  material assimp channel light animation node utility bounding_box aabb picking_texture sound imgui_impl_glfw imgui_impl_opengl3 OpenGL::GL glfw GLEW::GLEW imgui)
 
+# 6. EXECUTABLE
+add_executable(main main.cpp)
+
+# 7. LINKOVANJE
+target_link_libraries(main
+    menu game level_manager shader camera map animated_mesh
+    player enemy cursor timer collision_object player_controller
+    enemy_behavior_tree enemy_state_machine collision_detector
+    object_controller input_controller animation_controller
+    skinned_mesh nav_mesh texture stb material assimp
+    channel light animation node utility bounding_box aabb
+    picking_texture sound
+    imgui_impl_glfw imgui_impl_opengl3 imgui
+    OpenGL::GL glfw GLEW::GLEW
+)
